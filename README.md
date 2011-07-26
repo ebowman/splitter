@@ -104,6 +104,14 @@ tests.
 Also note that it assumes a few ports are free for running the
 tests; it would be nice to make this configurable.
 
+Credits
+-------
+
+The idea for this came from https://github.com/neotyk who made an earlier
+version (but on which this version is only based conceptually).
+
+Thanks to TomTom for letting me release this as ASL.
+
 Enjoy!
 
 Eric Bowman
