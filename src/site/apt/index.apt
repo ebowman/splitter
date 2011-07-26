@@ -1,0 +1,84 @@
+                                      ---
+                                    Splitter
+                                      ---
+                      Eric Bowman (eric.bowman@tomtom.com)
+                                      ---
+                                  7 April 2011
+
+Introduction
+    
+    Splitter is a
+    {{{http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.154.1180&rep=rep1&type=pdf}splitter
+    proxy}}, which is used to "split" production HTTP traffic to hit a second
+    (shadow) server, and to capture and store each request, and both responses.
+
+    Splitter is designed to be extremely performant, using non-blocking i/o. It is also designed
+    to be extremely robust in the event the shadow server is slow or generating errors (with one
+    exception, if the shadow server is slow to connect the socket).
+
+    Splitter can store the request and both the "reference" and "shadow"
+    requests to {{{http://mongodb.org}Mongodb}}; this functionality is optional.
+
+Running
+
+    Splitter is just a java program; it runs from a java command line, not
+    embedded in a container. However it can be embedded in a container easily
+    enough if required, though that's essentially overkill.
+
+    To run splitter, you run a command line like:
+
+---
+java -jar splitter-0.2-jar-with-dependencies.jar my.config
+---
+
+    This will start the server, configured by the file named "my.config".  If
+    correctly configured, the server will start listening on the proxy port,
+    reverse-proxying requests to both the reference server and the shadow
+    server, logging to a log file or the console (configured by default to roll
+    over once per day), and optionally storing each request and its two
+    responses in mongodb.
+
+Configuration
+
+    The configuration file looks similar like the file shown below:
+
+---
+port = 8080                            # This is the proxy listen port
+reference = "prod.tomtom.com:8080"     # hostname:port for the reference server
+shadow    = "preprod.tomtom.com:8080"  # hostname:port for the shadow server
+
+capture = "mongodb"                    # May be "none" or "mongodb"
+
+# This block configures logging.
+# <level> may be set to trace, debug, info, warn, or error
+# <console> may be true or false, to control whether logs
+#         go to the console or not
+# <truncate> may be true or false. If true, will truncate the
+#         log file each time the server starts (good for development,
+#         bad for production)
+# <file> may be "default", or the path to the file to write to. If missing,
+#         no log file is written (though if console is true, logs will go
+#         to the console).
+audit {
+   level = "warn"
+   console = true
+   truncate = true
+   file = "default"
+}
+
+# This needs to be present to disable Configgy's logging mechanism
+log {
+}
+
+# Only relevant if capture="mongodb", this configures the host, port,
+# and database name of the mongdb server to log requests & responses to.
+mongo {
+    host = "localhost"
+    port = 27017
+    db = "splitter"
+}
+---
+
+Mongo DB Format
+    
+    <<todo>>
