@@ -77,7 +77,7 @@ class LoadTest extends WordSpec with ShouldMatchers with BeforeAndAfterEach {
   }
 
   Config.loadFile(new File("src/test/resources/test.config"))
-  Logging.config(Config.config)
+  Config.config.configOpt("audit").foreach(Logging.config(_))
 
   override def beforeEach() {
     referenceServer.start()

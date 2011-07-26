@@ -33,7 +33,7 @@ object Proxy {
     Config.loadFile(new File(args(0)))
 
     import Config.config
-    Logging.config(config)
+    config.configOpt("audit").foreach(Logging.config(_))
 
     val serverConfig = ConfigFactory.getConfig
     serverConfig.start()
@@ -46,7 +46,7 @@ object Proxy {
       |
       |  This program takes a single argument, the path to a configuration file.
       |
-      |  Stuck?  eric.bowman@tomtom.com
+      |  Stuck?  ebowman@boboco.ie
       |
       |""".stripMargin)
   }

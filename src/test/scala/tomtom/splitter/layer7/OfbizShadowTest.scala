@@ -62,7 +62,7 @@ class OfbizShadowTest extends WordSpec with ShouldMatchers with BeforeAndAfterEa
   }
 
   Config.loadFile(new File("src/test/resources/test.config"))
-  Logging.config(Config.config)
+  Config.config.configOpt("audit").foreach(Logging.config(_))
 
   override def beforeEach() {
     referenceServer.start()

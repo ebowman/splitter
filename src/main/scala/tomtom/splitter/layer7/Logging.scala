@@ -25,7 +25,7 @@ object Logging {
   def config(config: Config) {
 
     // override the default logback configuration
-    config.stringOpt("audit.config") match {
+    config.stringOpt("config") match {
       case Some(path) => System.setProperty("logback.configurationFile", path)
       case None =>
     }
@@ -33,7 +33,7 @@ object Logging {
     val rootLogger = LoggerFactory.getLogger(
       Logger.ROOT_LOGGER_NAME).asInstanceOf[ch.qos.logback.classic.Logger]
 
-    if (!config.bool("audit.console", true)) {
+    if (!config.bool("console", true)) {
       rootLogger.detachAppender("CONSOLE")
     }
 
@@ -43,7 +43,7 @@ object Logging {
      */
     val fileAppender = rootLogger.getAppender("FILE").asInstanceOf[FileAppender[_]]
 
-    config.stringOpt("audit.file") match {
+    config.stringOpt("file") match {
       case None => rootLogger.detachAppender("FILE")
       case Some("default") =>
       case Some(file) =>
@@ -53,7 +53,7 @@ object Logging {
     /**
      * truncate the log file?
      */
-    val truncate = config.bool("audit.truncate", false)
+    val truncate = config.bool("truncate", false)
     if (truncate && truncate == fileAppender.isAppend) {
       fileAppender.setAppend(!truncate)
     }
@@ -63,7 +63,7 @@ object Logging {
     /**
      * Override the log level as needed
      */
-    config.stringOpt("audit.level") match {
+    config.stringOpt("level") match {
       case Some("trace") => rootLogger.setLevel(Level.TRACE)
       case Some("debug") => rootLogger.setLevel(Level.DEBUG)
       case Some("info") => rootLogger.setLevel(Level.INFO)
