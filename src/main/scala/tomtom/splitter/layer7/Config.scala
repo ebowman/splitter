@@ -23,6 +23,7 @@ import java.net.{SocketAddress, InetSocketAddress}
 import org.jboss.netty.channel.Channel
 import org.jboss.netty.handler.codec.http.HttpRequest
 import tomtom.splitter.config.Config
+import java.io.File
 
 /**Manages a host:port string, able to supply it as an InetSocketAddress. */
 case class ProxiedServer(hostPort: String) {
@@ -101,6 +102,7 @@ object ConfigFactory {
 
       val referenceHostname = config.stringOpt("referenceHostname")
       val shadowHostname = config.stringOpt("shadowHostname")
+      val rewriteConfig = config.stringOpt("rewriteConfig").map(new File(_))
     }
   }
 }

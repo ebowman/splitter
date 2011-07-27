@@ -21,6 +21,7 @@ import org.scalatest.junit.JUnitRunner
 import org.junit.runner.RunWith
 import org.scalatest.matchers.MustMatchers
 import org.jboss.netty.handler.codec.http.{HttpMethod, HttpVersion, DefaultHttpRequest}
+import java.io.File
 
 /**
  * Verifies basic behavior of RequestMapper.
@@ -33,7 +34,7 @@ import org.jboss.netty.handler.codec.http.{HttpMethod, HttpVersion, DefaultHttpR
 class RequestsTest extends WordSpec with MustMatchers with RequestMapperModule {
 
   override val shadowHostname = Some("my.hostname")
-  override val referenceHostname = None
+  override val rewriteConfig = Some(new File("ofbiz.config"))
 
   def fromUri(method: HttpMethod)(uri: String) = new DefaultHttpRequest(HttpVersion.HTTP_1_1, method, uri)
 

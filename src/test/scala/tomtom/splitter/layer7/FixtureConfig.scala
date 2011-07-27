@@ -21,6 +21,7 @@ import org.jboss.netty.channel.socket.nio.{NioClientSocketChannelFactory, NioSer
 import java.util.UUID
 import org.slf4j.LoggerFactory
 import org.jboss.netty.handler.codec.http.{HttpResponse, HttpRequest, HttpChunk, HttpMessage}
+import java.io.File
 
 /**
  * Document me.
@@ -129,4 +130,6 @@ case class FixtureConfig(port: Int,
   val rewriteShadowUrl = identity _
   val referenceHostname = None: Option[String]
   val shadowHostname = None: Option[String]
+
+  val rewriteConfig = Some(new File("ofbiz.config"))
 }
