@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory
 import SourceType._, DataType._
 import tomtom.splitter.config.Config
 import java.io.File
+import tomtom.splitter.layer7.PortFactory._
 
 /**
  * Document me.
@@ -42,9 +43,9 @@ class BasicProxyTest extends WordSpec with ShouldMatchers with BeforeAndAfterEac
   // respond normally, respond slowly, or return an error
   implicit val executor: ExecutorService = Executors.newCachedThreadPool
   val log = LoggerFactory.getLogger(getClass)
-  val proxyPort = 8484
-  val referencePort = 8181
-  val shadowPort = 8282
+  val proxyPort = reservePort
+  val referencePort = reservePort
+  val shadowPort = reservePort
   val referenceServer = new CommandableServer("reference", referencePort)
   val shadowServer = new CommandableServer("shadow", shadowPort)
   var proxyConfig: FixtureConfig = _

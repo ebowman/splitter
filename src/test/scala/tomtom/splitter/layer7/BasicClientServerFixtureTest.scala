@@ -24,6 +24,7 @@ import org.junit.runner.RunWith
 import org.scalatest.matchers.MustMatchers
 import org.jboss.netty.buffer.DynamicChannelBuffer
 import org.jboss.netty.handler.codec.http.{HttpRequest, DefaultHttpChunk, DefaultHttpChunkTrailer, HttpChunk, HttpHeaders, HttpVersion, DefaultHttpResponse, HttpResponseStatus}
+import tomtom.splitter.layer7.PortFactory._
 
 /**
  * Test to verify and demonstrate our mini http server & client fixtures.
@@ -35,7 +36,7 @@ import org.jboss.netty.handler.codec.http.{HttpRequest, DefaultHttpChunk, Defaul
 @RunWith(classOf[JUnitRunner])
 class BasicClientServerFixtureTest extends WordSpec with MustMatchers {
 
-  val serverPort = 8484
+  val serverPort = reservePort
   implicit val executor = Executors.newCachedThreadPool
   "The testing infrastructure" should {
 

@@ -41,9 +41,12 @@ class OfbizShadowTest extends WordSpec with ShouldMatchers with BeforeAndAfterEa
   // respond normally, respond slowly, or return an error
   implicit val executor: ExecutorService = Executors.newCachedThreadPool
   val log = LoggerFactory.getLogger(getClass)
-  val proxyPort = 8484
-  val referencePort = 8181
-  val shadowPort = 8282
+
+  import PortFactory.reservePort
+
+  val proxyPort = reservePort
+  val referencePort = reservePort
+  val shadowPort = reservePort
   val referenceServer = new CommandableServer("reference", referencePort)
   val shadowServer = new CommandableServer("shadow", shadowPort)
   var proxyConfig: FixtureConfig = _
@@ -114,7 +117,7 @@ class OfbizShadowTest extends WordSpec with ShouldMatchers with BeforeAndAfterEa
 
       assert(refReq.getHeader(HttpHeaders.Names.HOST) === "localhost:" + proxyPort)
       assert(shadReq.getHeader(HttpHeaders.Names.HOST) === "ofbiz.tomtom.com")
-      assert(refContent === "HOST=localhost:8484")
+      assert(refContent === "HOST=localhost:" + proxyPort)
       assert(shadContent === "HOST=ofbiz.tomtom.com")
       assert(refReq.getUri === "/buenos-aires-ws/services/wfe/users/?reference=host&shadow=host")
       assert(shadReq.getUri === "/ttuser/atom/users/?reference=host&shadow=host")
@@ -136,7 +139,7 @@ class OfbizShadowTest extends WordSpec with ShouldMatchers with BeforeAndAfterEa
 
     assert(refReq.getHeader(HttpHeaders.Names.HOST) === "localhost:" + proxyPort)
     assert(shadReq.getHeader(HttpHeaders.Names.HOST) === refReq.getHeader(HttpHeaders.Names.HOST))
-    assert(refContent === "HOST=localhost:8484")
+    assert(refContent === "HOST=localhost:" + proxyPort)
     assert(shadContent === "")
     assert(refReq.getUri === "/buenos-aires-ws/services/wfe/users/?reference=host&shadow=host")
     assert(shadReq.getUri === refReq.getUri)
