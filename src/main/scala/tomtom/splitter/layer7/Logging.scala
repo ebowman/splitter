@@ -30,48 +30,51 @@ object Logging {
       case None =>
     }
 
-    val rootLogger = LoggerFactory.getLogger(
-      Logger.ROOT_LOGGER_NAME).asInstanceOf[ch.qos.logback.classic.Logger]
+    val root = LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME)
+    if (root != null && root.isInstanceOf[ch.qos.logback.classic.Logger]) {
 
-    if (!config.bool("console", true)) {
-      rootLogger.detachAppender("CONSOLE")
-    }
+      val rootLogger = root.asInstanceOf[ch.qos.logback.classic.Logger]
 
-    /**
-     * Set file=default to use what is in the logback config, leave it out
-     * in order to disable file logging, or set a filename explicitly.
-     */
-    val fileAppender = rootLogger.getAppender("FILE").asInstanceOf[FileAppender[_]]
+      if (!config.bool("console", true)) {
+        rootLogger.detachAppender("CONSOLE")
+      }
 
-    config.stringOpt("file") match {
-      case None => rootLogger.detachAppender("FILE")
-      case Some("default") =>
-      case Some(file) =>
-        fileAppender.setFile(file)
-    }
+      /**
+       * Set file=default to use what is in the logback config, leave it out
+       * in order to disable file logging, or set a filename explicitly.
+       */
+      val fileAppender = rootLogger.getAppender("FILE").asInstanceOf[FileAppender[_]]
 
-    /**
-     * truncate the log file?
-     */
-    val truncate = config.bool("truncate", false)
-    if (truncate && truncate == fileAppender.isAppend) {
-      fileAppender.setAppend(!truncate)
-    }
+      config.stringOpt("file") match {
+        case None => rootLogger.detachAppender("FILE")
+        case Some("default") =>
+        case Some(file) =>
+          fileAppender.setFile(file)
+      }
 
-    fileAppender.start() // pick up any changes
+      /**
+       * truncate the log file?
+       */
+      val truncate = config.bool("truncate", false)
+      if (truncate && truncate == fileAppender.isAppend) {
+        fileAppender.setAppend(!truncate)
+      }
 
-    /**
-     * Override the log level as needed
-     */
-    config.stringOpt("level") match {
-      case Some("trace") => rootLogger.setLevel(Level.TRACE)
-      case Some("debug") => rootLogger.setLevel(Level.DEBUG)
-      case Some("info") => rootLogger.setLevel(Level.INFO)
-      case Some("warn") => rootLogger.setLevel(Level.WARN)
-      case Some("error") => rootLogger.setLevel(Level.ERROR)
-      case Some(unknown) => println("Unknown log level " + unknown +
-        " (should be trace, debug, info, warn, or error")
-      case None =>
+      fileAppender.start() // pick up any changes
+
+      /**
+       * Override the log level as needed
+       */
+      config.stringOpt("level") match {
+        case Some("trace") => rootLogger.setLevel(Level.TRACE)
+        case Some("debug") => rootLogger.setLevel(Level.DEBUG)
+        case Some("info") => rootLogger.setLevel(Level.INFO)
+        case Some("warn") => rootLogger.setLevel(Level.WARN)
+        case Some("error") => rootLogger.setLevel(Level.ERROR)
+        case Some(unknown) => println("Unknown log level " + unknown +
+          " (should be trace, debug, info, warn, or error")
+        case None =>
+      }
     }
   }
 }
