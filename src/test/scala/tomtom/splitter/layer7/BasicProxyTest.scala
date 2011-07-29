@@ -203,10 +203,10 @@ class BasicProxyTest extends WordSpec with ShouldMatchers with BeforeAndAfterEac
         }
       } <<
         ("/?reference=ok&shadow=ok&test=success+http+1.0+1", {
-          case (r, s) => assert(s === "reference ok")
+          case (r, s) => assert(s === "reference ok", "reference +1 was not ok")
         }) <<
         ("/?reference=ok&shadow=ok&test=success+http+1.0+2", {
-          case (r, s) => assert(s === "reference ok")
+          case (r, s) => assert(s === "reference ok", "reference +2 was not ok")
         })
 
       client.close()
@@ -216,10 +216,10 @@ class BasicProxyTest extends WordSpec with ShouldMatchers with BeforeAndAfterEac
       assert(dataSunk.size === 2)
       var header = 2
       for (testSink <- dataSunk) {
-        assert(HttpClient.cb2String(testSink.messages(Reference, Response).getContent) === "reference ok")
-        assert(HttpClient.cb2String(testSink.messages(Shadow, Response).getContent) === "shadow ok")
-        assert(testSink.messages(Reference, Response).getHeader("X-Request-Id") == header.toString)
-        assert(testSink.messages(Shadow, Response).getHeader("X-Request-Id") == header.toString)
+        assert(HttpClient.cb2String(testSink.messages(Reference, Response).getContent) === "reference ok", "Did not find 'reference ok'")
+        assert(HttpClient.cb2String(testSink.messages(Shadow, Response).getContent) === "shadow ok", "Did not find 'shadow ok'")
+        assert(testSink.messages(Reference, Response).getHeader("X-Request-Id") == header.toString, "Did not find reference 'X-Request-Id'")
+        assert(testSink.messages(Shadow, Response).getHeader("X-Request-Id") == header.toString, "Did not find shadow 'X-Request-Id'")
         header -= 1
       }
     }
