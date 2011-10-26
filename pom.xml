@@ -5,30 +5,15 @@
 
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <parent>
-        <groupId>com.tomtom</groupId>
-        <artifactId>tomtom-super</artifactId>
-        <version>0.15</version>
-        <relativePath /> <!-- maven 3 bug, http://jira.codehaus.org/browse/MNG-4687 -->
-    </parent>
     <groupId>com.tomtom</groupId>
     <artifactId>splitter</artifactId>
     <packaging>jar</packaging>
     <version>0.14-SNAPSHOT</version>
-    <scm>
-        <connection>
-            scm:svn:svn://nl-dcp-01/repository/sandbox/erbo/splitter/trunk
-        </connection>
-        <developerConnection>
-            scm:svn:svn://nl-dcp-01/repository/sandbox/erbo/splitter/trunk
-        </developerConnection>
-        <url>http://nl-dcp-01.intra.local/listing.php?repname=tomtom&amp;path=%2Fsandbox%2Ferbo%2Fsplitter%2Ftrunk%2F#path_sandbox_erbo_splitter_trunk_</url>
-    </scm>
     <developers>
         <developer>
             <id>erbo</id>
             <name>Eric Bowman</name>
-            <email>eric.bowman@tomtom.com</email>
+            <email>eric.bowman@boboco.ie</email>
         </developer>
     </developers>
     <properties>
