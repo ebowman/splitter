@@ -409,8 +409,7 @@ trait InboundBootstrapComponent {
     }
 
     override def exceptionCaught(ctx: ChannelHandlerContext, e: ExceptionEvent) {
-      log.error("Exception caught in InboundHandler: {} {}", inboundChannel, Exceptions.stackTrace(e.getCause))
-      super.exceptionCaught(ctx, e)
+      log.error("Exception caught in InboundHandler: {} {}", inboundChannel, e.getCause)
     }
 
     override def channelInterestChanged(ctx: ChannelHandlerContext,
