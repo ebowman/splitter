@@ -216,7 +216,7 @@ trait MongoDbComponent {
           "chunks" -> extractChunks(chunks))
       }
 
-      private def extractChunks(chunks: List[HttpChunk]): BasicDBList = {
+      private def extractChunks(chunks: List[HttpChunk]): MongoDBList = {
         val chunkList = MongoDBList.newBuilder
         chunks.reverse.foreach {
           chunk: HttpChunk =>
@@ -227,7 +227,7 @@ trait MongoDbComponent {
         chunkList.result()
       }
 
-      private def extractHeaders(request: HttpMessage): BasicDBList = {
+      private def extractHeaders(request: HttpMessage): MongoDBList = {
         import collection.JavaConverters._
         val headers = MongoDBList.newBuilder
         for (headerName <- request.getHeaderNames.asScala) {
@@ -245,7 +245,7 @@ trait MongoDbComponent {
         headers.result()
       }
 
-      private def extractCookies(request: HttpRequest): BasicDBList = {
+      private def extractCookies(request: HttpRequest): MongoDBList = {
         val cookieHeader = request.getHeader(HttpHeaders.Names.COOKIE)
         val cookieObj = MongoDBList.newBuilder
         if (cookieHeader != null) {

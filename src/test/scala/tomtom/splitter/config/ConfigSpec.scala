@@ -16,17 +16,19 @@
 
 package tomtom.splitter.config
 
-import org.scalatest.Spec
+import org.scalatest.{FlatSpec, Matchers, Spec}
 import org.scalatest.matchers.ShouldMatchers
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import java.io.StringReader
 
 @RunWith(classOf[JUnitRunner])
-class ConfigSpec extends Spec with ShouldMatchers with ConfigParser {
+class ConfigSpec extends FlatSpec with Matchers with ConfigParser {
   type ? = this.type
 
-  describe("The config parser") {
+  behavior of "the config parser"
+
+  it should "behave as expected" in {
     val testConfig = """
       myInt = 7
       myBool = false
