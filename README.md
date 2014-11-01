@@ -19,19 +19,12 @@ Splitter is written in Scala, and uses the JBoss Netty library.
 Building
 --------
 
-Splitter may be built using either maven or sbt:
+Splitter may be built using sbt:
 
-    mvn clean install
-
-or
-    ./sbt 
+    ./sbt
 
     > update
     > test
-
-The sbt mechanism is probably nicer for development; the maven
-mechanism will build a self-contained jar will (which includes all
-dependences) which can be run using `java -jar`.
 
 Configuration
 -------------
@@ -50,7 +43,7 @@ used by the now-defunct "Configgy" library.
     shadowHostname = "shadow.tomtom.com"
 
     # "none" | "mongodb"
-    capture = "none"     
+    capture = "none"
 
     audit {
        level = "info"
@@ -89,9 +82,9 @@ run; you should run:
 
     tomtom.splitter.layer7.Proxy
 
-If you have built a self-contained jar, you can run it like:
+If you have built a self-contained jar (using 'sbt assembly'), you can run it like:
 
-    java -jar splitter-0.14-SNAPSHOT-jar-with-dependencies.jar [path to config file]
+    java -jar splitter-assembly-0.14-SNAPSHOT.jar [path to config file]
 
 Future Directions
 -----------------
