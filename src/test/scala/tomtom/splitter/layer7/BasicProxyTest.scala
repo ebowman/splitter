@@ -16,10 +16,9 @@
 
 package tomtom.splitter.layer7
 
-import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.junit.JUnitRunner
 import org.junit.runner.RunWith
-import org.scalatest.{BeforeAndAfterEach, WordSpec}
+import org.scalatest.{Matchers, BeforeAndAfterEach, WordSpec}
 import java.util.concurrent.{Semaphore, Executors, ExecutorService}
 import FixtureConfig._
 import org.jboss.netty.handler.codec.http.{HttpResponse, HttpVersion, HttpRequest, HttpResponseStatus}
@@ -37,7 +36,7 @@ import tomtom.splitter.layer7.PortFactory._
  * @since 2011-04-07 09:19
  */
 @RunWith(classOf[JUnitRunner])
-class BasicProxyTest extends WordSpec with ShouldMatchers with BeforeAndAfterEach {
+class BasicProxyTest extends WordSpec with Matchers with BeforeAndAfterEach {
 
   // bring up a reference server that can accept commands to either
   // respond normally, respond slowly, or return an error
@@ -64,7 +63,7 @@ class BasicProxyTest extends WordSpec with ShouldMatchers with BeforeAndAfterEac
   }
 
   Config.loadFile(new File("src/test/resources/test.config"))
-  Config.config.configOpt("audit").foreach(Logging.config(_))
+  Config.config.configOpt("audit").foreach(Logging.config)
 
   override def beforeEach() {
     referenceServer.start()

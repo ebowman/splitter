@@ -90,12 +90,10 @@ Future Directions
 -----------------
 
 This tool is still pretty raw, but already useful.  It might be nice
-to support other means besides MongoDB for logging requests. I tried
-porting it to sbt 0.10.0, and ran into problems with the automated
-tests.
+to support other means besides MongoDB for logging requests.
 
 Also note that it assumes a few ports are free for running the
-tests; it would be nice to make this configurable.
+tests; it would be nice to make this configurable or dynamic.
 
 Credits
 -------

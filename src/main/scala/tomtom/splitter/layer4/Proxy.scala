@@ -51,7 +51,7 @@ object Proxy {
     require(args.length >= 3 && args.length % 2 == 1)
 
     val port = args(0).toInt
-    val remotes = args.drop(1).map(Server(_)).toList
+    val remotes = args.drop(1).map(Server).toList
 
     println("Proxying traffic to " + port + " to " + remotes)
 
@@ -154,12 +154,12 @@ class ProxyInboundHandler(hosts: Server*) extends SimpleChannelUpstreamHandler {
 
   override def channelClosed(ctx: ChannelHandlerContext, e: ChannelStateEvent) {
     println("ProxyInboundHandler.channelClosed")
-    outboundChannels.foreach(closeOnFlush(_))
+    outboundChannels.foreach(closeOnFlush)
   }
 
   override def exceptionCaught(ctx: ChannelHandlerContext, e: ExceptionEvent) {
     e.getCause.printStackTrace()
-    outboundChannels.foreach(closeOnFlush(_))
+    outboundChannels.foreach(closeOnFlush)
   }
 }
 

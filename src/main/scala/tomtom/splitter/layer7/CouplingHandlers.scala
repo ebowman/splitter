@@ -41,8 +41,9 @@ abstract class AbstractCouplingHandler extends SimpleChannelUpstreamHandler {
   @volatile var binding: Option[Binding] = None
 
   override def handleUpstream(ctx: ChannelHandlerContext, e: ChannelEvent) {
+    def isTrue(obj: AnyRef) = obj match { case java.lang.Boolean.TRUE => true; case _ => false }
     e match {
-      case up: UpstreamChannelStateEvent if up.getState == ChannelState.OPEN && up.getValue == true =>
+      case up: UpstreamChannelStateEvent if up.getState == ChannelState.OPEN && isTrue(up.getValue) =>
         failure = None
         request = None
       case message: MessageEvent => message.getMessage match {

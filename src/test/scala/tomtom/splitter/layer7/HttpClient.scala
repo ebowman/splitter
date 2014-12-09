@@ -79,7 +79,7 @@ case class HttpClient(host: String = "localhost", port: Int)(implicit executor: 
           try {
             onResponses.head(response, cb2String(response.getContent))
           } catch {
-            case ex => exceptions ::= ex
+            case ex: Throwable => exceptions ::= ex
           } finally {
             onResponses = onResponses.tail
           }

@@ -71,29 +71,29 @@ class InboundCodec extends ChannelUpstreamHandler with ChannelDownstreamHandler 
           if (chunked) {
             if (chunk.isLast) {
               chunked = false
-              if (chunk.isInstanceOf[HttpChunkTrailer]) {
-                protocol match {
-                  case HttpVersion.HTTP_1_1 =>
-                    val trailer = ChannelBuffers.dynamicBuffer(channel.getConfig.getBufferFactory)
-                    trailer.writeByte('0'.asInstanceOf[Byte])
-                    trailer.writeByte(CR)
-                    trailer.writeByte(LF)
-                    encodeTrailingHeaders(trailer, chunk.asInstanceOf[HttpChunkTrailer])
-                    trailer.writeByte(CR)
-                    trailer.writeByte(LF)
-                    trailer
-                  case HttpVersion.HTTP_1_0 =>
-                    channel.close()
-                    null
-                }
-              }
-              else {
-                protocol match {
-                  case HttpVersion.HTTP_1_1 => LAST_CHUNK.duplicate
-                  case HttpVersion.HTTP_1_0 =>
-                    channel.close()
-                    null
-                }
+              chunk match {
+                case trailerNext: HttpChunkTrailer =>
+                  protocol match {
+                    case HttpVersion.HTTP_1_1 =>
+                      val trailer = ChannelBuffers.dynamicBuffer(channel.getConfig.getBufferFactory)
+                      trailer.writeByte('0'.asInstanceOf[Byte])
+                      trailer.writeByte(CR)
+                      trailer.writeByte(LF)
+                      encodeTrailingHeaders(trailer, trailerNext)
+                      trailer.writeByte(CR)
+                      trailer.writeByte(LF)
+                      trailer
+                    case HttpVersion.HTTP_1_0 =>
+                      channel.close()
+                      null
+                  }
+                case _ =>
+                  protocol match {
+                    case HttpVersion.HTTP_1_1 => LAST_CHUNK.duplicate
+                    case HttpVersion.HTTP_1_0 =>
+                      channel.close()
+                      null
+                  }
               }
             }
             else {
@@ -131,9 +131,7 @@ class InboundCodec extends ChannelUpstreamHandler with ChannelDownstreamHandler 
         }
       }
       catch {
-        case e: UnsupportedEncodingException => {
-          throw new Error().initCause(e).asInstanceOf[Error]
-        }
+        case e: UnsupportedEncodingException => throw new Error().initCause(e).asInstanceOf[Error]
       }
     }
 
@@ -145,9 +143,7 @@ class InboundCodec extends ChannelUpstreamHandler with ChannelDownstreamHandler 
         }
       }
       catch {
-        case e: UnsupportedEncodingException => {
-          throw new Error().initCause(e).asInstanceOf[Error]
-        }
+        case e: UnsupportedEncodingException => throw new Error().initCause(e).asInstanceOf[Error]
       }
     }
 

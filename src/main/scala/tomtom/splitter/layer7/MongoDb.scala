@@ -21,8 +21,8 @@ import com.mongodb.casbah.commons.{MongoDBList, MongoDBObject}
 import org.slf4j.LoggerFactory
 import org.jboss.netty.handler.codec.http.{HttpRequest, HttpMessage, HttpResponse, CookieDecoder, HttpHeaders, HttpChunk}
 import java.util.UUID
-import collection.mutable.Set
-import com.mongodb.{ServerAddress, BasicDBList, DBObject}
+import collection.mutable
+import com.mongodb.{ServerAddress, DBObject}
 import com.mongodb.casbah.{MongoOptions, MongoConnection}
 
 case class MongoConfig(host: String, port: Int, dbName: String, enableShadowing: Boolean, connsPerHost: Int) {
@@ -180,11 +180,11 @@ trait MongoDbComponent {
                     log.trace("About to save: {} -> {}", MongoSink.this, toSave)
                     requests.save(toSave)
                   } catch {
-                    case e => log.error("Exception saving {}: {}", MongoSink.this,
+                    case e: Exception => log.error("Exception saving {}: {}", MongoSink.this,
                       Exceptions.stackTrace(e))
                   }
                 } catch {
-                  case e => log.error("Exception creating {}: {}", MongoSink.this,
+                  case e: Exception => log.error("Exception creating {}: {}", MongoSink.this,
                     Exceptions.stackTrace(e))
                 }
               }
@@ -197,7 +197,7 @@ trait MongoDbComponent {
         require(request != null)
         MongoDBObject(
           "method" -> request.getMethod.toString,
-          "uri" -> request.getUri.toString,
+          "uri" -> request.getUri,
           "version" -> request.getProtocolVersion.toString,
           "cookies" -> extractCookies(request),
           "headers" -> extractHeaders(request),
@@ -277,7 +277,7 @@ object MongoInspect extends MongoDbComponent {
 
   def main(args: Array[String]) {
     val collection = mongoDb.requests
-    val seenIds = Set[Int]()
+    val seenIds = mutable.Set[Int]()
     var dups = 0
     for (obj <- collection) {
       val id = obj.get("requestId").toString.toInt

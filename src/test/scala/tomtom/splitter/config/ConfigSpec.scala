@@ -16,11 +16,10 @@
 
 package tomtom.splitter.config
 
-import org.scalatest.{FlatSpec, Matchers, Spec}
-import org.scalatest.matchers.ShouldMatchers
+import org.scalatest.{FlatSpec, Matchers}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
-import java.io.StringReader
+import java.io.{File, StringReader}
 
 @RunWith(classOf[JUnitRunner])
 class ConfigSpec extends FlatSpec with Matchers with ConfigParser {
@@ -35,6 +34,7 @@ class ConfigSpec extends FlatSpec with Matchers with ConfigParser {
       myString = "now is the time"
       myStringNewline = "now\nis the\ntime"
       myStringTab = "now\tis the time"
+      myFile = "a.txt"
 
       # comment, preceded & followed by blank line
 
@@ -52,17 +52,22 @@ class ConfigSpec extends FlatSpec with Matchers with ConfigParser {
       val configMap = parse(new StringReader(testConfig))
     }
 
-    config.int("myInt") should(be(7))
-    config.intOpt("myInt") should(be(Some(7)))
-    config.intOpt("yourInt") should(be(None))
+    config.int("myInt") should be(7)
+    config.intOpt("myInt") should be(Some(7))
+    config.intOpt("yourInt") should be(None)
 
-    config.bool("myBool") should(be(false))
-    config.boolOpt("myBool") should(be(Some(false)))
-    config.boolOpt("yourBool") should(be(None))
+    config.bool("myBool") should be(false)
+    config.boolOpt("myBool") should be(Some(false))
+    config.boolOpt("yourBool") should be(None)
 
-    config.string("myString") should(be("now is the time"))
-    config.stringOpt("myString") should(be(Some("now is the time")))
-    config.stringOpt("yourString") should(be(None))
+    config.string("myString") should be("now is the time")
+    config.stringOpt("myString") should be(Some("now is the time"))
+    config.stringOpt("yourString") should be(None)
+
+    config.file("myFile") should be(new File("a.txt"))
+    config.file("missing file", new File("b.txt")) should be(new File("b.txt"))
+    config.fileOpt("missing file") should be(None)
+    config.fileOpt("myFile") should be(Some(new File("a.txt")))
 
     config.string("myStringNewline") should be(
       """|now
@@ -72,16 +77,46 @@ class ConfigSpec extends FlatSpec with Matchers with ConfigParser {
     config.string("myStringTab") should be("now\tis the time")
 
     val subConfig = config.config("mySubConfig")
-    config.configOpt("mySubConfig") should(be(Some(subConfig)))
-    config.configOpt("yourSubConfig") should(be(None))
+    config.configOpt("mySubConfig") should be(Some(subConfig))
+    config.configOpt("yourSubConfig") should be(None)
 
-    subConfig.int("mySubInt") should(be(8))
-    subConfig.string("mySubString") should(be("for all good \"men\" to come to the aid of their country"))
-    subConfig.bool("mySubBool") should(be(true))
+    subConfig.int("mySubInt") should be(8)
+    subConfig.int("mySubIntMissing", 7) should be(7)
+    subConfig.string("mySubString") should be("for all good \"men\" to come to the aid of their country")
+    subConfig.string("missing string", "foo") should be("foo")
+    subConfig.bool("mySubBool") should be(true)
+    subConfig.bool("missing bool", false) should be(false)
 
     val subsub = subConfig.config("mySubSubConfig")
-    subsub.string("foo") should(be("bar"))
+    subsub.string("foo") should be("bar")
 
-    config.string("mySubConfig.mySubSubConfig.foo") should(be("bar"))
+    config.string("mySubConfig.mySubSubConfig.foo") should be("bar")
+
+    a[RuntimeException] shouldBe thrownBy(config.config(""))
+    a[RuntimeException] shouldBe thrownBy(config.config("no such config.bar"))
+    a[RuntimeException] shouldBe thrownBy(config.bool("no such boolean"))
+  }
+
+  it should "load a global config from various places" in {
+    Config.loadResource("/test.config")
+    Config.config.config("audit").string("level") should be("warn")
+    Config.loadFile(new File("src/test/resources/test.config"))
+    Config.config.config("audit").string("level") should be("warn")
+    Config.loadString(
+      """
+        |audit {
+        |  level = "info"
+        |}
+      """.stripMargin)
+    Config.config.config("audit").string("level") should be("info")
+  }
+
+  it should "fail predictably when not initialized" in {
+    Config._config.set(null)
+    a[RuntimeException] should be thrownBy Config.config
+  }
+
+  it should "fail predictably when parsing garbage" in {
+    a[RuntimeException] should be thrownBy new ConfigParser {}.parse(new StringReader("blah"))
   }
 }

@@ -23,8 +23,8 @@ import bootstrap.ServerBootstrap
 import buffer.ChannelBuffers
 import channel._
 import handler.codec.http.{HttpResponse, HttpRequest, HttpHeaders, DefaultHttpResponse, HttpResponseStatus, HttpVersion, HttpChunk}
+import java.util
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.ArrayList
 import java.util.concurrent.{Executors, LinkedBlockingQueue}
 
 import SourceType._
@@ -182,7 +182,7 @@ trait InboundBootstrapComponent {
             connectionPool, reference, shadow, dataSinkFactory))
           pipeline
         } catch {
-          case e => e.printStackTrace(); throw e
+          case e: Exception => e.printStackTrace(); throw e
         }
       }
     })
@@ -308,7 +308,7 @@ trait InboundBootstrapComponent {
                 case e: InterruptedException =>
                   log.warn("shadow executor interrupted")
                   done = true
-                case e =>
+                case e: Throwable =>
                   log.error("Exception processing shadow: {}", Exceptions.stackTrace(e))
               } finally {
                 log.info("Leaving long-running shadow pump task")
@@ -325,7 +325,7 @@ trait InboundBootstrapComponent {
        */
       def drainAndFlush: Boolean = {
         log.info("Executing a drain & flush")
-        val pending = new ArrayList[RequestContext]
+        val pending = new util.ArrayList[RequestContext]
         pendingRequests.drainTo(pending)
         import collection.JavaConverters._
         val (closed, open) = pending.asScala.partition(_ == ChannelClosedRequest)
@@ -385,7 +385,7 @@ trait InboundBootstrapComponent {
             case e: NoSuchElementException =>
               log.info("oops, NoSuchElement")
               drainAndFlush
-            case e =>
+            case e: Throwable =>
               log.info("oops, unknown exception: {}", e)
               log.error("Unknown exception borrowing connection {}", Exceptions.stackTrace(e))
           } finally {

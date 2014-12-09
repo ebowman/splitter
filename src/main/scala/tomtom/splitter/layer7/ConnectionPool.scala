@@ -120,7 +120,7 @@ trait ConnectionPoolFactoryComponent {
         log.trace("Validating ({}, {})", key, obj)
       }
       val typedObj = fromObj(obj)
-      val result = (typedObj.created || (typedObj.channel.isConnected && typedObj.channel.isWritable))
+      val result = typedObj.created || (typedObj.channel.isConnected && typedObj.channel.isWritable)
       log.info("Validating {} result is {}", obj, result)
       result
     }

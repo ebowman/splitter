@@ -57,18 +57,20 @@ trait RewriteParser extends RegexParsers {
     new Regex(_)
   }
   protected val rewrite = token
-  protected val rewriter = pattern ~ "\t" ~ rewrite ^^ {
-    case pattern ~ _ ~ rewrite => Rewriter(pattern, rewrite)
+
+  protected val rewriter: Parser[Rewriter] = pattern ~ "\t" ~ rewrite ^^ {
+    case ptrn ~ _ ~ rewrte => Rewriter(ptrn, rewrte)
   }
-  protected val rule = methods ~ "\t" ~ rewriter ^^ {
-    case methods ~ _ ~ rewriter =>
-      methods match {
-        case "*" => (allMethods, rewriter)
-        case list: List[String] => (list.toSet, rewriter)
+
+  protected val rule: Parser[(Set[String], Rewriter)] = methods ~ "\t" ~ rewriter ^^ {
+    case mthods ~ _ ~ rewrter =>
+      mthods match {
+        case "*" => (allMethods, rewrter)
+        case list: List[_] => (list.map((x: Any) => x.toString).toSet, rewrter)
       }
   }
 
-  protected val rules = repsep(rule, "\n")
+  protected val rules: Parser[List[(Set[String], Rewriter)]] = repsep(rule, "\n")
 
   def parse(config: File) = {
     val toParse = Source.fromFile(config).getLines().filter(
@@ -89,14 +91,14 @@ trait RequestMapperModule {
     val rewriteRules: Option[Map[String, List[Rewriter]]] = rewriteConfig.map {
       reader =>
         parse(reader) match {
-          case f@Failure(_, _) =>
+          case f@NoSuccess(_, _) =>
             sys.error("Could not parse rewriteConfig: " + f)
           case Success(rools, _) =>
             val flatter: List[(String, Rewriter)] = for {
               (methods, rule) <- rools
               method <- methods
-            } yield (method -> rule)
-            flatter.groupBy(_._1).map(x => (x._1 -> x._2.map(_._2)))
+            } yield method -> rule
+            flatter.groupBy(_._1).map(x => x._1 -> x._2.map(_._2))
         }
     }
 
@@ -124,7 +126,7 @@ trait RequestMapperModule {
 
       import collection.JavaConverters._
       for (name <- request.getHeaderNames.asScala) {
-        copy.setHeader(name, request.getHeaders(name))
+        copy.headers.set(name, request.getHeaders(name))
       }
 
       copy

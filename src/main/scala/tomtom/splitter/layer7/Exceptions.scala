@@ -25,7 +25,7 @@ object Exceptions {
       t.printStackTrace(new PrintWriter(writer))
       writer.toString
     } catch {
-      case e =>
+      case e: Exception =>
         "Oops, blew an exception dealing with " + t + " -> " + e
     }
   }

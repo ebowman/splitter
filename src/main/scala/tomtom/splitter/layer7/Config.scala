@@ -60,7 +60,7 @@ object ConfigFactory {
       val inboundSocketFactory = new NioServerSocketChannelFactory(executor, executor)
       val inboundBootstrap = new InboundBootstrap
       val port = config.int("port", 8080)
-      val enableShadowing = config.bool("enableShadowing", true)
+      val enableShadowing = config.bool("enableShadowing", default = true)
 
       val outboundChannelFactory = new NioClientSocketChannelFactory(executor, executor)
       val connectionFactory = new ConnectionPoolFactory
@@ -96,8 +96,8 @@ object ConfigFactory {
       }
 
       val rewriteShadowUrl = config.stringOpt("rewriter") match {
-        case Some("ofbiz") => RequestMapper.rewrite _: (HttpRequest => Option[HttpRequest])
-        case _ => identity _: (HttpRequest => Option[HttpRequest])
+        case Some("ofbiz") => RequestMapper.rewrite: (HttpRequest => Option[HttpRequest])
+        case _ => identity: (HttpRequest => Option[HttpRequest])
       }
 
       val referenceHostname = config.stringOpt("referenceHostname")

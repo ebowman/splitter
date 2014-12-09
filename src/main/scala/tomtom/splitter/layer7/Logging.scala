@@ -35,7 +35,7 @@ object Logging {
 
       val rootLogger = root.asInstanceOf[ch.qos.logback.classic.Logger]
 
-      if (!config.bool("console", true)) {
+      if (!config.bool("console", default = true)) {
         rootLogger.detachAppender("CONSOLE")
       }
 
@@ -55,7 +55,7 @@ object Logging {
       /**
        * truncate the log file?
        */
-      val truncate = config.bool("truncate", false)
+      val truncate = config.bool("truncate", default = false)
       if (truncate && truncate == fileAppender.isAppend) {
         fileAppender.setAppend(!truncate)
       }
