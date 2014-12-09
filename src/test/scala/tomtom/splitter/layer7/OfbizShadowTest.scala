@@ -16,18 +16,18 @@
 
 package tomtom.splitter.layer7
 
-import org.scalatest.matchers.ShouldMatchers
-import org.scalatest.junit.JUnitRunner
-import org.junit.runner.RunWith
-import org.scalatest.{BeforeAndAfterEach, WordSpec}
-import java.util.concurrent.{Semaphore, Executors, ExecutorService}
-import FixtureConfig._
-import org.slf4j.LoggerFactory
-
-import SourceType._, DataType._
-import org.jboss.netty.handler.codec.http.{HttpHeaders, HttpResponse, HttpRequest, HttpResponseStatus}
-import tomtom.splitter.config.Config
 import java.io.File
+import java.util.concurrent.{ExecutorService, Executors, Semaphore}
+
+import org.jboss.netty.handler.codec.http.{HttpHeaders, HttpRequest, HttpResponse, HttpResponseStatus}
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
+import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
+import org.slf4j.LoggerFactory
+import tomtom.splitter.config.Config
+import tomtom.splitter.layer7.DataType._
+import tomtom.splitter.layer7.FixtureConfig._
+import tomtom.splitter.layer7.SourceType._
 
 // implicit int-to-ProxiedServer
 
@@ -35,14 +35,14 @@ import java.io.File
  * Confirms that some well-known BA URLs are rewritten properly for Ofbiz
  */
 @RunWith(classOf[JUnitRunner])
-class OfbizShadowTest extends WordSpec with ShouldMatchers with BeforeAndAfterEach {
+class OfbizShadowTest extends WordSpec with Matchers with BeforeAndAfterEach {
 
   // bring up a reference server that can accept commands to either
   // respond normally, respond slowly, or return an error
   implicit val executor: ExecutorService = Executors.newCachedThreadPool
   val log = LoggerFactory.getLogger(getClass)
 
-  import PortFactory.reservePort
+  import tomtom.splitter.layer7.PortFactory.reservePort
 
   val proxyPort = reservePort
   val referencePort = reservePort
@@ -65,14 +65,15 @@ class OfbizShadowTest extends WordSpec with ShouldMatchers with BeforeAndAfterEa
   }
 
   Config.loadFile(new File("src/test/resources/test.config"))
-  Config.config.configOpt("audit").foreach(Logging.config(_))
+  Config.config.configOpt("audit").foreach(Logging.config)
 
   override def beforeEach() {
     referenceServer.start()
     shadowServer.start()
     proxyConfig = new FixtureConfig(proxyPort, referencePort, shadowPort, notifier) {
       override val rewriteShadowUrl = RequestMapper.rewrite _
-      override val referenceHostname = None // Some("ba.tomtom.com")
+      override val referenceHostname = None
+      // Some("ba.tomtom.com")
       override val shadowHostname = Some("ofbiz.tomtom.com")
 
     }
@@ -106,7 +107,7 @@ class OfbizShadowTest extends WordSpec with ShouldMatchers with BeforeAndAfterEa
 
       mutex = Some(new Semaphore(1))
       mutex.foreach(_.acquire())
-      val referenceClient = new HttpClient("localhost", proxyPort) POST (
+      val referenceClient = new HttpClient("localhost", proxyPort) POST(
         "/buenos-aires-ws/services/wfe/users/?reference=host&shadow=host", {
         case (r, s) =>
       })
@@ -115,8 +116,8 @@ class OfbizShadowTest extends WordSpec with ShouldMatchers with BeforeAndAfterEa
       referenceClient.assertOk()
       mutex.foreach(_.acquire())
 
-      assert(refReq.getHeader(HttpHeaders.Names.HOST) === "localhost:" + proxyPort)
-      assert(shadReq.getHeader(HttpHeaders.Names.HOST) === "ofbiz.tomtom.com")
+      assert(refReq.headers.get(HttpHeaders.Names.HOST) === "localhost:" + proxyPort)
+      assert(shadReq.headers.get(HttpHeaders.Names.HOST) === "ofbiz.tomtom.com")
       assert(refContent === "HOST=localhost:" + proxyPort)
       assert(shadContent === "HOST=ofbiz.tomtom.com")
       assert(refReq.getUri === "/buenos-aires-ws/services/wfe/users/?reference=host&shadow=host")
@@ -128,7 +129,7 @@ class OfbizShadowTest extends WordSpec with ShouldMatchers with BeforeAndAfterEa
 
     mutex = Some(new Semaphore(1))
     mutex.foreach(_.acquire())
-    val referenceClient = new HttpClient("localhost", proxyPort) GET (
+    val referenceClient = new HttpClient("localhost", proxyPort) GET(
       "/buenos-aires-ws/services/wfe/users/?reference=host&shadow=host", {
       case (r, s) =>
     })
@@ -137,8 +138,8 @@ class OfbizShadowTest extends WordSpec with ShouldMatchers with BeforeAndAfterEa
     referenceClient.assertOk()
     mutex.foreach(_.acquire())
 
-    assert(refReq.getHeader(HttpHeaders.Names.HOST) === "localhost:" + proxyPort)
-    assert(shadReq.getHeader(HttpHeaders.Names.HOST) === refReq.getHeader(HttpHeaders.Names.HOST))
+    assert(refReq.headers.get(HttpHeaders.Names.HOST) === "localhost:" + proxyPort)
+    assert(shadReq.headers.get(HttpHeaders.Names.HOST) === refReq.headers.get(HttpHeaders.Names.HOST))
     assert(refContent === "HOST=localhost:" + proxyPort)
     assert(shadContent === "")
     assert(refReq.getUri === "/buenos-aires-ws/services/wfe/users/?reference=host&shadow=host")

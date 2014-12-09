@@ -110,7 +110,7 @@ trait RequestMapperModule {
       } yield {
         val copied = copy(request)
         copied.setUri(rewritten)
-        shadowHostname.foreach(copied.setHeader("Host", _))
+        shadowHostname.foreach(copied.headers.set("Host", _))
         copied
       }
     }
@@ -125,8 +125,8 @@ trait RequestMapperModule {
       }
 
       import collection.JavaConverters._
-      for (name <- request.getHeaderNames.asScala) {
-        copy.headers.set(name, request.getHeaders(name))
+      for (name <- request.headers.names.asScala) {
+        copy.headers.set(name, request.headers.getAll(name))
       }
 
       copy

@@ -80,8 +80,8 @@ object Server {
                 }
 
                 val requestId: Option[Int] = {
-                  if (request.getHeader("X-Request-Id") != null) {
-                    Some(request.getHeader("X-Request-Id").toInt)
+                  if (request.headers.get("X-Request-Id") != null) {
+                    Some(request.headers.get("X-Request-Id").toInt)
                   } else {
                     None
                   }
@@ -96,7 +96,7 @@ object Server {
                 buffer.append("VERSION: " + request.getProtocolVersion + "\r\n")
                 buffer.append("HOSTNAME: " + HttpHeaders.getHost(request, "unknown") + "\r\n")
                 buffer.append("REQUEST_URI: " + request.getUri + "\r\n\r\n")
-                request.getHeaders.asScala.foreach {
+                request.headers.asScala.foreach {
                   h => buffer.append("HEADER: " + h.getKey + "=" + h.getValue + "\r\n")
                 }
                 buffer.append("\r\n")
@@ -124,9 +124,9 @@ object Server {
                 val chunk = e.getMessage.asInstanceOf[HttpChunk]
                 if (chunk.isLast) {
                   val trailer = chunk.asInstanceOf[HttpChunkTrailer]
-                  if (!trailer.getHeaderNames.isEmpty) {
-                    for (name <- trailer.getHeaderNames.asScala;
-                         value <- trailer.getHeaders(name).asScala) {
+                  if (!trailer.trailingHeaders().isEmpty) {
+                    for (name <- trailer.trailingHeaders.names.asScala;
+                         value <- trailer.trailingHeaders.getAll(name).asScala) {
                       buffer.append("TRAILING HEADER: " + name + "=" + value + "\r\n")
                     }
                     buffer.append("\r\n")
@@ -142,25 +142,23 @@ object Server {
               val keepAlive = false // HttpHeaders.isKeepAlive(this.request)
               val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)
               response.setContent(ChannelBuffers.copiedBuffer(buffer.toString(), CharsetUtil.UTF_8))
-              response.setHeader(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
-              response.setHeader("X-Response-Id", idGenerator.incrementAndGet.toString)
-              // response.setHeader("Connection", "close")
+              response.headers.set(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
+              response.headers.set("X-Response-Id", idGenerator.incrementAndGet.toString)
+              // response.headers.set("Connection", "close")
               if (keepAlive) {
-                response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, response.getContent.readableBytes)
+                response.headers.set(HttpHeaders.Names.CONTENT_LENGTH, response.getContent.readableBytes)
               }
-              val cookieString = request.getHeader(HttpHeaders.Names.COOKIE)
+              val cookieString = request.headers.get(HttpHeaders.Names.COOKIE)
               if (cookieString != null) {
                 val cookies = new CookieDecoder().decode(cookieString).asScala
-                if (!cookies.isEmpty) {
+                if (cookies.nonEmpty) {
                   val encoder = new CookieEncoder(/* server= */ true)
-                  cookies foreach {
-                    encoder.addCookie(_)
-                  }
-                  response.setHeader(HttpHeaders.Names.SET_COOKIE, encoder.encode)
+                  cookies.foreach(encoder.addCookie)
+                  response.headers.set(HttpHeaders.Names.SET_COOKIE, encoder.encode)
                 }
               }
 
-              requestId.map(response.setHeader("X-Request-Id", _))
+              requestId.map(response.headers.set("X-Request-Id", _))
 
               val future = e.getChannel.write(response)
               if (!keepAlive) {

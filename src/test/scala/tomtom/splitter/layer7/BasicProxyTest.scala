@@ -185,8 +185,8 @@ class BasicProxyTest extends WordSpec with Matchers with BeforeAndAfterEach {
       for (testSink <- dataSunk) {
         assert(HttpClient.cb2String(testSink.messages(Reference, Response).getContent) === "reference ok")
         assert(HttpClient.cb2String(testSink.messages(Shadow, Response).getContent) === "shadow ok")
-        assert(testSink.messages(Reference, Response).getHeader("X-Request-Id") == header.toString)
-        assert(testSink.messages(Shadow, Response).getHeader("X-Request-Id") == header.toString)
+        assert(testSink.messages(Reference, Response).headers.get("X-Request-Id") == header.toString)
+        assert(testSink.messages(Shadow, Response).headers.get("X-Request-Id") == header.toString)
         header -= 1
       }
     }
@@ -217,8 +217,8 @@ class BasicProxyTest extends WordSpec with Matchers with BeforeAndAfterEach {
       for (testSink <- dataSunk) {
         assert(HttpClient.cb2String(testSink.messages(Reference, Response).getContent) === "reference ok", "Did not find 'reference ok'")
         assert(HttpClient.cb2String(testSink.messages(Shadow, Response).getContent) === "shadow ok", "Did not find 'shadow ok'")
-        assert(testSink.messages(Reference, Response).getHeader("X-Request-Id") == header.toString, "Did not find reference 'X-Request-Id'")
-        assert(testSink.messages(Shadow, Response).getHeader("X-Request-Id") == header.toString, "Did not find shadow 'X-Request-Id'")
+        assert(testSink.messages(Reference, Response).headers.get("X-Request-Id") == header.toString, "Did not find reference 'X-Request-Id'")
+        assert(testSink.messages(Shadow, Response).headers.get("X-Request-Id") == header.toString, "Did not find shadow 'X-Request-Id'")
         header -= 1
       }
     }

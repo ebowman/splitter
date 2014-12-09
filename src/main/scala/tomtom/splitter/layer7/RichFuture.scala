@@ -26,15 +26,14 @@ import org.jboss.netty.channel.{ChannelFutureListener, ChannelFuture}
  */
 
 object RichFuture {
-  implicit def channelFuture2RichFuture(future: ChannelFuture) = new RichFuture(future)
-}
-
-class RichFuture(future: ChannelFuture) {
-  def listen(f: (ChannelFuture => Unit)) {
-    future.addListener(new ChannelFutureListener {
-      def operationComplete(future: ChannelFuture) {
-        f(future)
-      }
-    })
+  implicit class RichFuture(val future: ChannelFuture) extends AnyVal {
+    def listen(f: (ChannelFuture => Unit)) {
+      future.addListener(new ChannelFutureListener {
+        def operationComplete(future: ChannelFuture) {
+          f(future)
+        }
+      })
+    }
   }
 }
+

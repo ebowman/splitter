@@ -44,9 +44,9 @@ class CommandableServer(name: String, port: Int)(implicit executor: ExecutorServ
                             status: HttpResponseStatus,
                             keepAlive: Boolean): List[AnyRef] = {
     val responseBits = super.makeResponse(request, buffer, status, keepAlive)
-    if (request.getHeader("X-Request-Id") != null) {
-      responseBits.head.asInstanceOf[HttpResponse].setHeader(
-        "X-Request-Id", request.getHeader("X-Request-Id"))
+    if (request.headers.get("X-Request-Id") != null) {
+      responseBits.head.asInstanceOf[HttpResponse].headers.set(
+        "X-Request-Id", request.headers.get("X-Request-Id"))
     }
     responseBits
   }
@@ -70,7 +70,7 @@ class CommandableServer(name: String, port: Int)(implicit executor: ExecutorServ
               buffer.append(name + " status " + code)
               HttpResponseStatus.valueOf(code.toInt)
             case Host() :: Nil =>
-              buffer.append("HOST=" + request.getHeader(HttpHeaders.Names.HOST))
+              buffer.append("HOST=" + request.headers.get(HttpHeaders.Names.HOST))
               HttpResponseStatus.OK
             case _ =>
               buffer.append(name + " could not parse " + request.getUri)

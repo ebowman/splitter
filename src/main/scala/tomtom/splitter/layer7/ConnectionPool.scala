@@ -16,7 +16,6 @@
 
 package tomtom.splitter.layer7
 
-import RichFuture._
 
 import org.apache.commons.pool.impl.GenericKeyedObjectPool
 import org.apache.commons.pool.KeyedPoolableObjectFactory
@@ -102,6 +101,7 @@ trait ConnectionPoolFactoryComponent {
       clientBootstrap.setOption("receiveTimeoutMillis", poolConfig.receiveTimeoutMillis.toString)
       clientBootstrap.setOption("keepAlive", poolConfig.keepAlive.toString)
       val future = clientBootstrap.connect(typedKey.server.address)
+      import RichFuture._
       future listen {
         typedKey.futureAction
       }

@@ -126,7 +126,7 @@ class InboundCodec extends ChannelUpstreamHandler with ChannelDownstreamHandler 
     def encodeHeaders(buf: ChannelBuffer, message: HttpMessage): Unit = {
       try {
         import collection.JavaConverters._
-        for (h <- message.getHeaders.asScala) {
+        for (h <- message.headers.asScala) {
           encodeHeader(buf, h.getKey, h.getValue)
         }
       }
@@ -138,7 +138,7 @@ class InboundCodec extends ChannelUpstreamHandler with ChannelDownstreamHandler 
     def encodeTrailingHeaders(buf: ChannelBuffer, trailer: HttpChunkTrailer): Unit = {
       try {
         import collection.JavaConverters._
-        for (h <- trailer.getHeaders.asScala) {
+        for (h <- trailer.trailingHeaders.asScala) {
           encodeHeader(buf, h.getKey, h.getValue)
         }
       }

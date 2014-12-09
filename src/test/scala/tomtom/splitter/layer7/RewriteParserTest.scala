@@ -16,10 +16,9 @@ package tomtom.splitter.layer7
  * limitations under the License.
  */
 
-import org.scalatest.WordSpec
-import org.scalatest.junit.JUnitRunner
 import org.junit.runner.RunWith
-import org.scalatest.matchers.MustMatchers
+import org.scalatest.junit.JUnitRunner
+import org.scalatest.{Matchers, WordSpec}
 
 /**
  * Verifies basic behavior of RequestMapper.
@@ -29,61 +28,61 @@ import org.scalatest.matchers.MustMatchers
  */
 
 @RunWith(classOf[JUnitRunner])
-class RewriteParserTest extends WordSpec with MustMatchers with RewriteParser {
+class RewriteParserTest extends WordSpec with Matchers with RewriteParser {
 
   "The RewriteParser" should {
 
     "parse all the methods" in {
-      allMethods.foreach(parseAll(method, _).successful must equal(true))
+      allMethods.foreach(parseAll(method, _).successful should equal(true))
     }
     "parse a wildcard" in {
-      parseAll(wildcard, "*").successful must equal(true)
-      parseAll(wildcard, "foo").successful must equal(false)
+      parseAll(wildcard, "*").successful should equal(true)
+      parseAll(wildcard, "foo").successful should equal(false)
     }
     "parse the methods in several cases" in {
-      parseAll(methods, "GET,POST,DELETE").successful must equal(true)
-      parseAll(methods, "*").successful must equal(true)
-      parseAll(methods, "GET,*").successful must equal(false)
+      parseAll(methods, "GET,POST,DELETE").successful should equal(true)
+      parseAll(methods, "*").successful should equal(true)
+      parseAll(methods, "GET,*").successful should equal(false)
     }
     "parse a pattern correctly" in {
       // bit of a gotcha here -- Pattern.equals isn't implemented, so these patterns are not ==
-      parseAll(pattern, "/buenos-aires-ws/services/wfe/users/(.*)").get.toString must
+      parseAll(pattern, "/buenos-aires-ws/services/wfe/users/(.*)").get.toString should
         equal("/buenos-aires-ws/services/wfe/users/(.*)".r.toString())
     }
     "parse a rewriter correctly" in {
-      parseAll(rewriter, "/buenos-aires-ws/services/wfe/users/(.*)\t/ttuser/atom/users/$1").get must equal {
+      parseAll(rewriter, "/buenos-aires-ws/services/wfe/users/(.*)\t/ttuser/atom/users/$1").get should equal {
         Rewriter("/buenos-aires-ws/services/wfe/users/(.*)".r, "/ttuser/atom/users/$1")
       }
     }
     "parse a simple rule" in {
-      parseAll(rule, "GET\t/buenos-aires-ws/services/wfe/users/(.*)\t/ttuser/atom/users/$1").get must equal {
+      parseAll(rule, "GET\t/buenos-aires-ws/services/wfe/users/(.*)\t/ttuser/atom/users/$1").get should equal {
         (Set("GET"), Rewriter("/buenos-aires-ws/services/wfe/users/(.*)".r, "/ttuser/atom/users/$1"))
       }
     }
     "parse a wildcard rule" in {
-      parseAll(rule, "*\t/buenos-aires-ws/services/wfe/users/(.*)\t/ttuser/atom/users/$1").get must equal {
+      parseAll(rule, "*\t/buenos-aires-ws/services/wfe/users/(.*)\t/ttuser/atom/users/$1").get should equal {
         (allMethods, Rewriter("/buenos-aires-ws/services/wfe/users/(.*)".r, "/ttuser/atom/users/$1"))
       }
     }
 
     "not parse a malformed rule" in {
-      parseAll(rule, "POST").successful must equal(false)
+      parseAll(rule, "POST").successful should equal(false)
     }
 
     "parse no rules successfully" in {
-      parseAll(rules, "").successful must equal(true)
+      parseAll(rules, "").successful should equal(true)
     }
     "parse a single-instance set of rules" in {
-      parseAll(rules, "*\t/buenos-aires-ws/services/wfe/users/(.*)\t/ttuser/atom/users/$1").get must equal {
+      parseAll(rules, "*\t/buenos-aires-ws/services/wfe/users/(.*)\t/ttuser/atom/users/$1").get should equal {
         List((allMethods, Rewriter("/buenos-aires-ws/services/wfe/users/(.*)".r, "/ttuser/atom/users/$1")))
       }
     }
 
     "parse multiple rules" in {
       parseAll(rules,
-      "GET\t/foo/(.*)/\t/bar/$1\n" +
-      "POST\t/bar/(.*)/\t/foo/$1\n" +
-      "GET,POST\t/who/(.*)\t/why/$1").get must equal {
+        "GET\t/foo/(.*)/\t/bar/$1\n" +
+          "POST\t/bar/(.*)/\t/foo/$1\n" +
+          "GET,POST\t/who/(.*)\t/why/$1").get should equal {
         List(
           (Set("GET"), Rewriter("/foo/(.*)/".r, "/bar/$1")),
           (Set("POST"), Rewriter("/bar/(.*)/".r, "/foo/$1")),

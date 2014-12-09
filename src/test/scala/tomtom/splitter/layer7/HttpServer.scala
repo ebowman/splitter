@@ -37,9 +37,9 @@ case class HttpServer(port: Int)(implicit executor: ExecutorService) {
                    keepAlive: Boolean): List[AnyRef] = {
     val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status)
     response.setContent(ChannelBuffers.copiedBuffer(buffer.toString(), CharsetUtil.UTF_8))
-    response.setHeader(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
+    response.headers.set(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
     if (keepAlive) {
-      response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, response.getContent.readableBytes)
+      response.headers.set(HttpHeaders.Names.CONTENT_LENGTH, response.getContent.readableBytes)
     }
     List(response)
   }
@@ -72,8 +72,8 @@ case class HttpServer(port: Int)(implicit executor: ExecutorService) {
               }
 
               val requestId: Option[Int] = {
-                if (request.getHeader("X-Request-Id") != null) {
-                  Some(request.getHeader("X-Request-Id").toInt)
+                if (request.headers.get("X-Request-Id") != null) {
+                  Some(request.headers.get("X-Request-Id").toInt)
                 } else {
                   None
                 }

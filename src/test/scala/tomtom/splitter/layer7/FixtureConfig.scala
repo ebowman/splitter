@@ -82,8 +82,8 @@ class FixtureSink(notifier: (FixtureSink => Unit)) extends DataSink {
     }
     if (doNotify && notifier != null) {
       // no other messages should contain this request id!
-      val requestId = messages(refKey).getHeader("X-Request-Id").toInt
-      val shadId = messages(refKey).getHeader("X-Request-Id").toInt
+      val requestId = messages(refKey).headers.get("X-Request-Id").toInt
+      val shadId = messages(refKey).headers.get("X-Request-Id").toInt
       require(requestId == shadId)
       notifier(this)
     }
@@ -103,7 +103,8 @@ class FixtureSink(notifier: (FixtureSink => Unit)) extends DataSink {
 }
 
 object FixtureConfig {
-  implicit def intToProxiedServer(port: Int) = ProxiedServer("localhost:" + port)
+  import scala.language.implicitConversions
+  implicit def intToProxiedServer(port: Int): ProxiedServer = ProxiedServer("localhost:" + port)
 }
 
 case class FixtureConfig(port: Int,

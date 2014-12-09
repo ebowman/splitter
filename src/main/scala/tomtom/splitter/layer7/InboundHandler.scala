@@ -39,14 +39,14 @@ case class HttpErrorResponse(status: HttpResponseStatus,
                              exception: Option[String] = None) extends DefaultHttpResponse(HttpVersion.HTTP_1_1, status) {
   val sdf = new SimpleDateFormat("dd MMM dd yyyy hh:mm:ss z")
   sdf.setTimeZone(java.util.TimeZone.getTimeZone("GMT"))
-  setHeader(HttpHeaders.Names.DATE, sdf.format(new java.util.Date))
-  setHeader(HttpHeaders.Names.SERVER, getClass.getPackage.getImplementationVersion match {
+  headers.set(HttpHeaders.Names.DATE, sdf.format(new java.util.Date))
+  headers.set(HttpHeaders.Names.SERVER, getClass.getPackage.getImplementationVersion match {
     case null => "splitter-dev"
     case version => version
   })
-  setHeader(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
+  headers.set(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
   val content = ChannelBuffers.copiedBuffer(exception.getOrElse(status.toString + "\n"), Charset.forName("UTF-8"))
-  setHeader(HttpHeaders.Names.CONTENT_LENGTH, content.readableBytes())
+  headers.set(HttpHeaders.Names.CONTENT_LENGTH, content.readableBytes())
   setContent(content)
 }
 
@@ -77,34 +77,34 @@ case class RequestContext(count: Int,
 
   val incomingConnectionHeader = if (request != null) {
     import HttpHeaders.Names._
-    request.getHeader(CONNECTION)
+    request.headers.get(CONNECTION)
   } else {
     null
   }
 
   if (request != null) {
-    request.setHeader(HttpHeaders.Names.CONNECTION, "Keep-Alive")
+    request.headers.set(HttpHeaders.Names.CONNECTION, "Keep-Alive")
     request.setProtocolVersion(HttpVersion.HTTP_1_1)
-    request.setHeader("X-Request-Id", count.toString)
+    request.headers.set("X-Request-Id", count.toString)
   }
 
   /**Mutates the response! */
   def setInboundResponseHeaders(response: HttpResponse): Boolean = {
     import HttpHeaders.Names._
-    val responseConnection = response.getHeader(CONNECTION)
-    response.removeHeader(CONNECTION)
-    response.removeHeader("Keep-Alive")
+    val responseConnection = response.headers.get(CONNECTION)
+    response.headers.remove(CONNECTION)
+    response.headers.remove("Keep-Alive")
     incomingHttpVersion match {
       case HttpVersion.HTTP_1_0 =>
-        response.setHeader(CONNECTION, "close")
-        response.removeHeader(TRANSFER_ENCODING)
+        response.headers.set(CONNECTION, "close")
+        response.headers.remove(TRANSFER_ENCODING)
         true
       case HttpVersion.HTTP_1_1 =>
         if (incomingConnectionHeader != "close" && responseConnection != "close") {
-          response.setHeader(CONNECTION, "Keep-Alive")
+          response.headers.set(CONNECTION, "Keep-Alive")
           false
         } else {
-          response.setHeader(CONNECTION, "close")
+          response.headers.set(CONNECTION, "close")
           true
         }
     }
@@ -168,7 +168,7 @@ trait InboundBootstrapComponent {
   val referenceHostname: Option[String]
 
   def rewriteReference(request: HttpRequest): HttpRequest = {
-    referenceHostname.foreach(request.setHeader("Host", _))
+    referenceHostname.foreach(request.headers.set("Host", _))
     request
   }
 

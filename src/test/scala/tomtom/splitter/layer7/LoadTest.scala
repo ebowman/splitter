@@ -16,24 +16,26 @@
 
 package tomtom.splitter.layer7
 
-import org.scalatest.matchers.ShouldMatchers
-import org.scalatest.{WordSpec, BeforeAndAfterEach}
-import org.scalatest.junit.JUnitRunner
-import org.junit.runner.RunWith
-import org.slf4j.LoggerFactory
-import java.util.concurrent.{ExecutorService, Executors, Semaphore}
-import SourceType._, DataType._
-import org.jboss.netty.handler.codec.http.{HttpRequest, HttpResponseStatus}
-import tomtom.splitter.config.Config
 import java.io.File
+import java.util.concurrent.{ExecutorService, Executors, Semaphore}
+
+import org.jboss.netty.handler.codec.http.{HttpRequest, HttpResponseStatus}
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
+import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
+import org.slf4j.LoggerFactory
+import tomtom.splitter.config.Config
+import tomtom.splitter.layer7.DataType._
+import tomtom.splitter.layer7.SourceType._
 
 @RunWith(classOf[JUnitRunner])
-class LoadTest extends WordSpec with ShouldMatchers with BeforeAndAfterEach {
+class LoadTest extends WordSpec with Matchers with BeforeAndAfterEach {
   // bring up a reference server that can accept commands to either
   // respond normally, respond slowly, or return an error
   implicit val executor: ExecutorService = Executors.newCachedThreadPool
   val log = LoggerFactory.getLogger(getClass)
-  import PortFactory.reservePort
+
+  import tomtom.splitter.layer7.PortFactory.reservePort
 
   val proxyPort = reservePort
   val referencePort = reservePort
@@ -56,8 +58,8 @@ class LoadTest extends WordSpec with ShouldMatchers with BeforeAndAfterEach {
   val _dups = collection.mutable.Map[Int, HttpRequest]()
 
   def notifier(testSink: FixtureSink) {
-    val refRequestId = testSink.messages(refKey).getHeader("X-Request-Id")
-    val shadRequestId = testSink.messages(shadKey).getHeader("X-Request-Id")
+    val refRequestId = testSink.messages(refKey).headers.get("X-Request-Id")
+    val shadRequestId = testSink.messages(shadKey).headers.get("X-Request-Id")
     require(refRequestId == shadRequestId)
     //log.warn("testSink: " + testSink.messages(requestKey).asInstanceOf[HttpRequest].getUri + " -> " + refRequestId)
     val requestId = refRequestId.toInt
@@ -84,7 +86,7 @@ class LoadTest extends WordSpec with ShouldMatchers with BeforeAndAfterEach {
   override def beforeEach() {
     referenceServer.start()
     shadowServer.start()
-    import FixtureConfig._
+    import tomtom.splitter.layer7.FixtureConfig._
     // implicit port-to-ProxiedServer
     proxyConfig = FixtureConfig(proxyPort, referencePort, shadowPort, notifier)
     proxyConfig.start()
@@ -132,7 +134,7 @@ class LoadTest extends WordSpec with ShouldMatchers with BeforeAndAfterEach {
             }) {
               val path = "/request=" + request
               // log.warn("Submitting {}", path)
-              client << (path, {
+              client <<(path, {
                 case (r, _) =>
                   assert(r.getStatus === HttpResponseStatus.OK)
               })
@@ -155,10 +157,10 @@ class LoadTest extends WordSpec with ShouldMatchers with BeforeAndAfterEach {
         fixtureSink =>
           fixtureSink.messages.get(refKey) match {
             case Some(response) =>
-              val requestId = response.getHeader("X-Request-Id")
+              val requestId = response.headers.get("X-Request-Id")
               fixtureSink.messages.get(shadKey) match {
                 case Some(shadResponse) =>
-                  val shadRequestId = shadResponse.getHeader("X-Request-Id")
+                  val shadRequestId = shadResponse.headers.get("X-Request-Id")
                   assert(requestId === shadRequestId, "shadResponse = " + shadResponse)
                 case None =>
                   log.warn("fixture {} doesn't contain {}", fixtureSink, shadKey)

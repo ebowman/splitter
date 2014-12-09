@@ -16,12 +16,12 @@
 
 package tomtom.splitter.layer7
 
-import org.scalatest.WordSpec
-import org.scalatest.junit.JUnitRunner
-import org.junit.runner.RunWith
-import org.scalatest.matchers.MustMatchers
-import org.jboss.netty.handler.codec.http.{HttpMethod, HttpVersion, DefaultHttpRequest}
 import java.io.File
+
+import org.jboss.netty.handler.codec.http.{DefaultHttpRequest, HttpMethod, HttpVersion}
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
+import org.scalatest.{Matchers, WordSpec}
 
 /**
  * Verifies basic behavior of RequestMapper.
@@ -31,7 +31,7 @@ import java.io.File
  */
 
 @RunWith(classOf[JUnitRunner])
-class RequestsTest extends WordSpec with MustMatchers with RequestMapperModule {
+class RequestsTest extends WordSpec with Matchers with RequestMapperModule {
 
   override val shadowHostname = Some("my.hostname")
   override val rewriteConfig = Some(new File("ofbiz.config"))

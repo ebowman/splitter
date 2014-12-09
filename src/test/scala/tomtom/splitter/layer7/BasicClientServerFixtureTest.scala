@@ -16,14 +16,14 @@
 
 package tomtom.splitter.layer7
 
-import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.Executors
-import org.scalatest.WordSpec
-import org.scalatest.junit.JUnitRunner
-import org.junit.runner.RunWith
-import org.scalatest.matchers.MustMatchers
+import java.util.concurrent.atomic.AtomicInteger
+
 import org.jboss.netty.buffer.DynamicChannelBuffer
-import org.jboss.netty.handler.codec.http.{HttpRequest, DefaultHttpChunk, DefaultHttpChunkTrailer, HttpChunk, HttpHeaders, HttpVersion, DefaultHttpResponse, HttpResponseStatus}
+import org.jboss.netty.handler.codec.http.{DefaultHttpChunk, DefaultHttpChunkTrailer, DefaultHttpResponse, HttpChunk, HttpHeaders, HttpRequest, HttpResponseStatus, HttpVersion}
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
+import org.scalatest.{Matchers, WordSpec}
 import tomtom.splitter.layer7.PortFactory._
 
 /**
@@ -34,7 +34,7 @@ import tomtom.splitter.layer7.PortFactory._
  */
 
 @RunWith(classOf[JUnitRunner])
-class BasicClientServerFixtureTest extends WordSpec with MustMatchers {
+class BasicClientServerFixtureTest extends WordSpec with Matchers {
 
   val serverPort = reservePort
   implicit val executor = Executors.newCachedThreadPool
@@ -61,7 +61,7 @@ class BasicClientServerFixtureTest extends WordSpec with MustMatchers {
 
       client.close()
       s.stop()
-      responses.toList must be(Array("1", "2").toList)
+      responses.toList should be(Array("1", "2").toList)
     }
 
     "should support returning a chunked response" in {
@@ -69,8 +69,8 @@ class BasicClientServerFixtureTest extends WordSpec with MustMatchers {
         override def makeResponse(request: HttpRequest, buffer: StringBuilder, status: HttpResponseStatus, keepAlive: Boolean): List[AnyRef] = {
           val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status)
           response.setChunked(true)
-          response.setHeader(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
-          response.setHeader(HttpHeaders.Names.TRANSFER_ENCODING, "chunked")
+          response.headers.set(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
+          response.headers.set(HttpHeaders.Names.TRANSFER_ENCODING, "chunked")
           val resultString = buffer.toString()
           def takeChunk(chunks: List[HttpChunk], rest: String): List[HttpChunk] = {
             if (rest.length == 0) {
@@ -84,7 +84,7 @@ class BasicClientServerFixtureTest extends WordSpec with MustMatchers {
               takeChunk(new DefaultHttpChunk(bytes) :: chunks, rest.drop(chars))
             }
           }
-          response :: (takeChunk(Nil, resultString).reverse)
+          response :: takeChunk(Nil, resultString).reverse
         }
       }.start {
         case (Left(request), buffer: StringBuilder) =>
@@ -107,7 +107,7 @@ class BasicClientServerFixtureTest extends WordSpec with MustMatchers {
 
       client.close()
       s.stop()
-      counter.get must be(577)
+      counter.get should be(577)
     }
   }
   type ? = this.type

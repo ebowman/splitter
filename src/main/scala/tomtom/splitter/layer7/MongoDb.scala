@@ -16,30 +16,33 @@
 
 package tomtom.splitter.layer7
 
-import java.util.concurrent.Executors
-import com.mongodb.casbah.commons.{MongoDBList, MongoDBObject}
-import org.slf4j.LoggerFactory
-import org.jboss.netty.handler.codec.http.{HttpRequest, HttpMessage, HttpResponse, CookieDecoder, HttpHeaders, HttpChunk}
 import java.util.UUID
-import collection.mutable
-import com.mongodb.{ServerAddress, DBObject}
-import com.mongodb.casbah.{MongoOptions, MongoConnection}
+import java.util.concurrent.Executors
+
+import com.mongodb.casbah.commons.{MongoDBList, MongoDBObject}
+import com.mongodb.casbah.{MongoClient, MongoClientOptions}
+import com.mongodb.{DBObject, ServerAddress}
+import org.jboss.netty.handler.codec.http.{CookieDecoder, HttpChunk, HttpHeaders, HttpMessage, HttpRequest, HttpResponse}
+import org.slf4j.LoggerFactory
+
+import scala.collection.mutable
 
 case class MongoConfig(host: String, port: Int, dbName: String, enableShadowing: Boolean, connsPerHost: Int) {
-  def mongoOptions = MongoOptions(connectionsPerHost = connsPerHost)
+  def mongoOptions = MongoClientOptions(connectionsPerHost = connsPerHost)
 }
 
 trait MongoDbComponent {
   val sessionId: String
   val mongoConfig: MongoConfig
 
-  import SourceType._, DataType._
+  import tomtom.splitter.layer7.DataType._
+  import tomtom.splitter.layer7.SourceType._
 
   class MongoDb extends DataSinkFactory {
 
     val log = LoggerFactory.getLogger(getClass)
 
-    val mongoConn = MongoConnection(
+    val mongoConn = MongoClient(
       new ServerAddress(mongoConfig.host, mongoConfig.port),
       mongoConfig.mongoOptions)
     val mongoDb = mongoConn(mongoConfig.dbName)
@@ -123,7 +126,7 @@ trait MongoDbComponent {
                 require(shadowRequest == null)
                 shadowRequest = message.asInstanceOf[HttpRequest]
               }
-            case _ => sys.error("Unknown sourceType/dataType: " + (sourceType, dataType))
+            case _ => sys.error("Unknown sourceType/dataType: " +(sourceType, dataType))
           }
           if (finished) {
             close()
@@ -228,10 +231,10 @@ trait MongoDbComponent {
       }
 
       private def extractHeaders(request: HttpMessage): MongoDBList = {
-        import collection.JavaConverters._
+        import scala.collection.JavaConverters._
         val headers = MongoDBList.newBuilder
-        for (headerName <- request.getHeaderNames.asScala) {
-          val individualHeaders = request.getHeaders(headerName).asScala
+        for (headerName <- request.headers.names.asScala) {
+          val individualHeaders = request.headers.getAll(headerName).asScala
           if (individualHeaders.size == 1) {
             headers += (headerName -> individualHeaders.head)
           } else {
@@ -246,10 +249,10 @@ trait MongoDbComponent {
       }
 
       private def extractCookies(request: HttpRequest): MongoDBList = {
-        val cookieHeader = request.getHeader(HttpHeaders.Names.COOKIE)
+        val cookieHeader = request.headers.get(HttpHeaders.Names.COOKIE)
         val cookieObj = MongoDBList.newBuilder
         if (cookieHeader != null) {
-          import collection.JavaConverters._
+          import scala.collection.JavaConverters._
           for (cookie <- new CookieDecoder().decode(cookieHeader).asScala) {
             cookieObj += (cookie.getName -> cookie.getValue)
           }
@@ -271,7 +274,7 @@ trait MongoDbComponent {
  */
 
 object MongoInspect extends MongoDbComponent {
-  val mongoConfig = MongoConfig("localhost", 27017, "splitter", true, 10)
+  val mongoConfig = MongoConfig("localhost", 27017, "splitter", enableShadowing = true, connsPerHost = 10)
   val sessionId = UUID.randomUUID.toString
   val mongoDb = new MongoDb
 

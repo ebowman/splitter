@@ -162,7 +162,7 @@ case class HttpClient(host: String = "localhost", port: Int)(implicit executor: 
       open()
     }
     request = new DefaultHttpRequest(HttpVersion.HTTP_1_1, method, path)
-    request.setHeader(HttpHeaders.Names.HOST, host + (if (port != 80) {
+    request.headers.set(HttpHeaders.Names.HOST, host + (if (port != 80) {
       ":" + port
     } else {
       ""
