@@ -54,9 +54,9 @@ case class HttpServer(port: Int)(implicit executor: ExecutorService) {
         pipeline.addLast("httpCodec", new HttpServerCodec)
         pipeline.addLast("processor", new SimpleChannelUpstreamHandler {
           var request: HttpRequest = _
-          var readingChunks = false
+          @volatile var readingChunks = false
           val buffer = new StringBuilder
-          var status: HttpResponseStatus = _
+          @volatile var status: HttpResponseStatus = _
 
           override def exceptionCaught(ctx: ChannelHandlerContext, e: ExceptionEvent) {
             e.getCause.printStackTrace()
@@ -71,14 +71,7 @@ case class HttpServer(port: Int)(implicit executor: ExecutorService) {
                   HttpVersion.HTTP_1_1, HttpResponseStatus.CONTINUE))
               }
 
-              val requestId: Option[Int] = {
-                if (request.headers.get("X-Request-Id") != null) {
-                  Some(request.headers.get("X-Request-Id").toInt)
-                } else {
-                  None
-                }
-              }
-
+              val requestId: Option[Int] = Option(request.headers.get("X-Request-Id")).map(_.toInt)
               buffer.clear()
               status = callback(Left(request), buffer)
               if (request.isChunked) {

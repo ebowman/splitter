@@ -174,6 +174,7 @@ trait InboundBootstrapComponent {
   }
 
   class InboundBootstrap extends ServerBootstrap(inboundSocketFactory) {
+    private val log = Logger(LoggerFactory.getLogger(getClass))
     setPipelineFactory(new ChannelPipelineFactory {
       def getPipeline: ChannelPipeline = {
         try {
@@ -183,7 +184,9 @@ trait InboundBootstrapComponent {
             connectionPool, reference, shadow, dataSinkFactory))
           pipeline
         } catch {
-          case e: Exception => e.printStackTrace(); throw e
+          case e: Exception =>
+            log.error("Could not bootstrap inbound", e)
+            throw e
         }
       }
     })
@@ -227,9 +230,7 @@ trait InboundBootstrapComponent {
 
     val pendingRequests = new LinkedBlockingQueue[RequestContext]
 
-    def referenceChannel: Channel = referenceBinding.outboundChannel
-
-    def shadowChannel: Channel = shadowBinding.outboundChannel
+    def referenceChannel(): Option[Channel] = Option(referenceBinding).map(_.outboundChannel)
 
     override def channelOpen(ctx: ChannelHandlerContext, e: ChannelStateEvent) {
       inboundChannel = e.getChannel
@@ -410,7 +411,7 @@ trait InboundBootstrapComponent {
     }
 
     override def exceptionCaught(ctx: ChannelHandlerContext, e: ExceptionEvent) {
-      log.error(s"Exception caught in InboundHandler: $inboundChannel ${e.getCause}")
+      log.error(s"Exception caught in InboundHandler: $inboundChannel", e.getCause)
     }
 
     override def channelInterestChanged(ctx: ChannelHandlerContext,
@@ -419,10 +420,10 @@ trait InboundBootstrapComponent {
       referenceLock synchronized {
         if (inboundChannel.isWritable) {
           log.info(s"Setting reference channel readable $inboundChannel")
-          referenceChannel.setReadable(true)
+          referenceChannel().map(_.setReadable(true))
         } else {
           log.info(s"Setting reference channel not readable $inboundChannel")
-          referenceChannel.setReadable(false)
+          referenceChannel().map(_.setReadable(false))
         }
       }
     }
@@ -480,7 +481,7 @@ trait InboundBootstrapComponent {
     }
 
     def assembleOutbound() {
-      referenceChannel.write(RequestBinding(request, referenceBinding))
+      referenceChannel().map(_.write(RequestBinding(request, referenceBinding)))
 
       if (enableShadowing) {
         shadowRequest match {

@@ -110,16 +110,12 @@ trait ConnectionPoolFactoryComponent {
     }
 
     override def destroyObject(key: AnyRef, obj: AnyRef) {
-      if (log.underlying.isDebugEnabled) {
-        log.debug(s"Destroying $key")
-      }
+      log.debug(s"Destroying $key")
       Channels.close(fromObj(obj).channel)
     }
 
     override def validateObject(key: AnyRef, obj: AnyRef): Boolean = {
-      if (log.underlying.isTraceEnabled) {
-        log.trace(s"Validating ($key, $obj)")
-      }
+      log.trace(s"Validating ($key, $obj)")
       val typedObj = fromObj(obj)
       val result = typedObj.created || (typedObj.channel.isConnected && typedObj.channel.isWritable)
       log.info(s"Validating $obj result is $result")
