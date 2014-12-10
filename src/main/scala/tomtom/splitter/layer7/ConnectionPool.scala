@@ -17,6 +17,7 @@
 package tomtom.splitter.layer7
 
 
+import com.typesafe.scalalogging.Logger
 import org.apache.commons.pool.impl.GenericKeyedObjectPool
 import org.apache.commons.pool.KeyedPoolableObjectFactory
 import org.slf4j.LoggerFactory
@@ -86,14 +87,14 @@ trait ConnectionPoolFactoryComponent {
 
   class ConnectionPoolFactory extends KeyedPoolableObjectFactory {
 
-    val log = LoggerFactory.getLogger(getClass)
+    val log = Logger(LoggerFactory.getLogger(getClass))
 
     def fromKey(key: AnyRef) = key.asInstanceOf[ConnectionKey]
 
     def fromObj(obj: AnyRef) = obj.asInstanceOf[CachedChannel]
 
     override def makeObject(key: AnyRef): AnyRef = {
-      log.info("Creating {}", key)
+      log.info(s"Creating $key")
       val typedKey = fromKey(key.asInstanceOf[ConnectionKey])
       val clientBootstrap = new ClientBootstrap(outboundChannelFactory)
       clientBootstrap.setPipelineFactory(typedKey.pipelineFactory())
@@ -109,19 +110,19 @@ trait ConnectionPoolFactoryComponent {
     }
 
     override def destroyObject(key: AnyRef, obj: AnyRef) {
-      if (log.isDebugEnabled) {
-        log.debug("Destroying {}", key)
+      if (log.underlying.isDebugEnabled) {
+        log.debug(s"Destroying $key")
       }
       Channels.close(fromObj(obj).channel)
     }
 
     override def validateObject(key: AnyRef, obj: AnyRef): Boolean = {
-      if (log.isTraceEnabled) {
-        log.trace("Validating ({}, {})", key, obj)
+      if (log.underlying.isTraceEnabled) {
+        log.trace(s"Validating ($key, $obj)")
       }
       val typedObj = fromObj(obj)
       val result = typedObj.created || (typedObj.channel.isConnected && typedObj.channel.isWritable)
-      log.info("Validating {} result is {}", obj, result)
+      log.info(s"Validating $obj result is $result")
       result
     }
 
@@ -147,7 +148,7 @@ trait ConnectionPoolComponent {
   val connectionFactory: ConnectionPoolFactory
 
   class ConnectionPoolImpl extends ConnectionPool {
-    val log = LoggerFactory.getLogger(getClass)
+    val log = Logger(LoggerFactory.getLogger(getClass))
 
     val pool = new GenericKeyedObjectPool(
       connectionFactory,
@@ -172,13 +173,13 @@ trait ConnectionPoolComponent {
         objBundle.created = false
       }
       val keyBundle = KeyChannelPair(key, objBundle)
-      log.info("Borrowing {} for request", keyBundle)
+      log.info(s"Borrowing $keyBundle for request")
       keyBundle
     }
 
     override def returnConnection(keyedBundle: KeyChannelPair) {
       if (keyedBundle != null) {
-        log.info("Returning {}", keyedBundle)
+        log.info(s"Returning $keyedBundle")
         pool.returnObject(keyedBundle.key, keyedBundle.obj)
       }
     }

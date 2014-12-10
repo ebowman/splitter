@@ -16,6 +16,7 @@
 
 package tomtom.splitter.layer7
 
+import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 import org.jboss.netty.channel.{Channel, MessageEvent, ChannelEvent, ChannelHandlerContext}
 import org.jboss.netty.handler.codec.http.{HttpChunk, HttpRequest, HttpRequestEncoder}
@@ -28,7 +29,7 @@ import org.jboss.netty.handler.codec.http.{HttpChunk, HttpRequest, HttpRequestEn
  */
 class SinkingHttpRequestEncoder(implicit source: SourceType.SourceType) extends HttpRequestEncoder {
 
-  val log = LoggerFactory.getLogger(getClass)
+  val log = Logger(LoggerFactory.getLogger(getClass))
 
   val requestQueue = collection.mutable.Queue[RequestBinding]()
   var requestContext: RequestContext = _
@@ -40,19 +41,20 @@ class SinkingHttpRequestEncoder(implicit source: SourceType.SourceType) extends 
       case message: MessageEvent => message.getMessage match {
         // When we see a RequestBinding, we either
         case requestBinding: RequestBinding =>
-          log.trace("Received RequestBinding {}", requestBinding)
+          log.trace(s"Received RequestBinding $requestBinding")
           this synchronized {
             require(!inboundClosed)
             if (requestContext == null) {
-              if (log.isInfoEnabled) {
-                log.info("Taking a binding {} {}", source, (requestBinding.request.request.getUri, requestBinding.request.count))
+              if (log.underlying.isInfoEnabled) {
+                log.info(s"Taking a binding $source ${(requestBinding.request.request.getUri, requestBinding.request.count)}")
               }
               requestContext = requestBinding.request
               binding = requestBinding.binding
               Some(requestBinding)
             } else {
-              if (log.isInfoEnabled) {
-                log.info("Queueing a binding {} {}", source, (requestBinding.request.request.getUri, requestBinding.request.count))
+              if (log.underlying.isInfoEnabled) {
+                log.info(s"Queueing a binding $source ${
+                  (requestBinding.request.request.getUri, requestBinding.request.count)}")
               }
               requestQueue.enqueue(requestBinding)
               None
@@ -63,7 +65,7 @@ class SinkingHttpRequestEncoder(implicit source: SourceType.SourceType) extends 
               val channel = ctx.getChannel
               val rc = requestContext
               if (rc != null) {
-                log.info("Writing to channel {}: {}", channel, rc.request)
+                log.info(s"Writing to channel $channel: ${rc.request}")
                 channel.write(rc.request)
                 rc.content foreach {
                   channel.write(_)
@@ -71,10 +73,10 @@ class SinkingHttpRequestEncoder(implicit source: SourceType.SourceType) extends 
               }
           }
         case RequestComplete(request) =>
-          log.trace("Received request complete {}", request)
+          log.trace(s"Received request complete $request")
           this synchronized {
             if (requestQueue.size == 0) {
-              log.info("Got RequestCompleted, queue empty {}", (source, request.request.getUri, request.count))
+              log.info(s"Got RequestCompleted, queue empty ${(source, request.request.getUri, request.count)}")
               if (inboundClosed && binding != null) {
                 binding.close()
                 binding = null
@@ -83,7 +85,7 @@ class SinkingHttpRequestEncoder(implicit source: SourceType.SourceType) extends 
               requestContext = null
               None
             } else {
-              log.info("Got RequestCompleted, queue full {}", (source, request.request.getUri, request.count))
+              log.info(s"Got RequestCompleted, queue full ${(source, request.request.getUri, request.count)}")
               val requestBinding = requestQueue.dequeue()
               requestContext = requestBinding.request
               binding = requestBinding.binding
@@ -120,7 +122,7 @@ class SinkingHttpRequestEncoder(implicit source: SourceType.SourceType) extends 
     if (msg != null) {
       msg match {
         case request: HttpRequest =>
-          log.info("{} Encoding request (sinking) ({})", source, (requestContext.request.getUri, requestContext.count))
+          log.info(s"$source Encoding request (sinking) (${(requestContext.request.getUri, requestContext.count)})")
           requestContext.dataSink.sinkRequest(source, request)
         case chunk: HttpChunk =>
           log.info("{} Encoding chunk (sinking) ({})", source, (requestContext.request.getUri, requestContext.count))

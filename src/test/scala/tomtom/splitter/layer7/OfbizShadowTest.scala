@@ -42,11 +42,11 @@ class OfbizShadowTest extends WordSpec with Matchers with BeforeAndAfterEach {
   implicit val executor: ExecutorService = Executors.newCachedThreadPool
   val log = LoggerFactory.getLogger(getClass)
 
-  import tomtom.splitter.layer7.PortFactory.reservePort
+  import tomtom.splitter.layer7.PortFactory.findPort
 
-  val proxyPort = reservePort
-  val referencePort = reservePort
-  val shadowPort = reservePort
+  val proxyPort = findPort()
+  val referencePort = findPort()
+  val shadowPort = findPort()
   val referenceServer = new CommandableServer("reference", referencePort)
   val shadowServer = new CommandableServer("shadow", shadowPort)
   var proxyConfig: FixtureConfig = _

@@ -42,9 +42,9 @@ class BasicProxyTest extends WordSpec with Matchers with BeforeAndAfterEach {
   // respond normally, respond slowly, or return an error
   implicit val executor: ExecutorService = Executors.newCachedThreadPool
   val log = LoggerFactory.getLogger(getClass)
-  val proxyPort = reservePort
-  val referencePort = reservePort
-  val shadowPort = reservePort
+  val proxyPort = findPort()
+  val referencePort = findPort()
+  val shadowPort = findPort()
   val referenceServer = new CommandableServer("reference", referencePort)
   val shadowServer = new CommandableServer("shadow", shadowPort)
   var proxyConfig: FixtureConfig = _

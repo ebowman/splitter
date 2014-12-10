@@ -36,7 +36,7 @@ import tomtom.splitter.layer7.PortFactory._
 @RunWith(classOf[JUnitRunner])
 class BasicClientServerFixtureTest extends WordSpec with Matchers {
 
-  val serverPort = reservePort
+  val serverPort = findPort()
   implicit val executor = Executors.newCachedThreadPool
   "The testing infrastructure" should {
 

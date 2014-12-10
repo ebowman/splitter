@@ -19,6 +19,7 @@ package tomtom.splitter.layer7
 import java.io.File
 import java.util.concurrent.{ExecutorService, Executors, Semaphore}
 
+import com.typesafe.scalalogging.Logger
 import org.jboss.netty.handler.codec.http.{HttpRequest, HttpResponseStatus}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -33,13 +34,13 @@ class LoadTest extends WordSpec with Matchers with BeforeAndAfterEach {
   // bring up a reference server that can accept commands to either
   // respond normally, respond slowly, or return an error
   implicit val executor: ExecutorService = Executors.newCachedThreadPool
-  val log = LoggerFactory.getLogger(getClass)
+  val log = Logger(LoggerFactory.getLogger(getClass))
 
-  import tomtom.splitter.layer7.PortFactory.reservePort
+  import tomtom.splitter.layer7.PortFactory.findPort
 
-  val proxyPort = reservePort
-  val referencePort = reservePort
-  val shadowPort = reservePort
+  val proxyPort = findPort()
+  val referencePort = findPort()
+  val shadowPort = findPort()
   val referenceServer = new CommandableServer("reference", referencePort)
   val shadowServer = new CommandableServer("shadow", shadowPort)
   var proxyConfig: FixtureConfig = _
@@ -66,7 +67,7 @@ class LoadTest extends WordSpec with Matchers with BeforeAndAfterEach {
     LoadTest.this synchronized {
       _dataSunk ::= testSink
       if (_seenIds.contains(requestId)) {
-        log.warn("Already seen {}", requestId)
+        log.warn(s"Already seen $requestId")
         _dups += (requestId -> testSink.messages(requestKey).asInstanceOf[HttpRequest])
       } else {
         _seenIds += (requestId -> testSink.messages(requestKey).asInstanceOf[HttpRequest])
@@ -163,10 +164,10 @@ class LoadTest extends WordSpec with Matchers with BeforeAndAfterEach {
                   val shadRequestId = shadResponse.headers.get("X-Request-Id")
                   assert(requestId === shadRequestId, "shadResponse = " + shadResponse)
                 case None =>
-                  log.warn("fixture {} doesn't contain {}", fixtureSink, shadKey)
+                  log.warn(s"fixture $fixtureSink doesn't contain $shadKey")
               }
             case None =>
-              log.warn("fixture {} doesn't contain {}", fixtureSink, refKey)
+              log.warn(s"fixture $fixtureSink doesn't contain $refKey")
           }
       }
     }

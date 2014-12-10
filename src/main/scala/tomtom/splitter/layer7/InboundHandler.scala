@@ -16,6 +16,7 @@
 
 package tomtom.splitter.layer7
 
+import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 
 import org.jboss.netty._
@@ -189,7 +190,7 @@ trait InboundBootstrapComponent {
   }
 
   object InboundHandler {
-    val log = LoggerFactory.getLogger(classOf[InboundHandler])
+    val log = Logger(LoggerFactory.getLogger(classOf[InboundHandler]))
     val counter = new AtomicInteger
     val referenceKey =
       ConnectionKey(reference, {
@@ -232,7 +233,7 @@ trait InboundBootstrapComponent {
 
     override def channelOpen(ctx: ChannelHandlerContext, e: ChannelStateEvent) {
       inboundChannel = e.getChannel
-      log.trace("channel opened, setting readable to false {}", inboundChannel)
+      log.trace(s"channel opened, setting readable to false $inboundChannel")
       inboundChannel.setReadable(false)
 
       val counter = new AtomicInteger(2)
@@ -240,10 +241,10 @@ trait InboundBootstrapComponent {
         referenceKey.copy(futureAction = {
           case future: ChannelFuture =>
             val setReadable = counter.decrementAndGet() == 0
-            log.info("On callback, setReadable = {}", setReadable)
+            log.info(s"On callback, setReadable = $setReadable")
             if (future.isSuccess) {
-              log.info("Reference connection success {}", inboundChannel)
-              log.trace("Setting inbound channel readable {}", inboundChannel)
+              log.info(s"Reference connection success $inboundChannel")
+              log.trace(s"Setting inbound channel readable $inboundChannel")
               referenceLock synchronized {
                 referenceBinding = Binding(connectionPool, referenceLock, referenceKey, Some(inboundChannel), future.getChannel)
                 if (setReadable) {
@@ -251,7 +252,7 @@ trait InboundBootstrapComponent {
                 }
               }
             } else {
-              log.error("Reference connection failed {}", inboundChannel)
+              log.error(s"Reference connection failed $inboundChannel")
               if (setReadable) {
                 referenceLock synchronized {
                   inboundChannel.setReadable(true)
@@ -267,12 +268,12 @@ trait InboundBootstrapComponent {
         }
       }
 
-      log.trace("Got outbound reference connection: {}", inboundChannel)
+      log.trace(s"Got outbound reference connection: $inboundChannel")
 
       // Even if we choose not to forward a single request, we still have to
       // bring up the infrastructure.
       if (enableShadowing) {
-        log.info("Initiating shadow processor for inbound {}", inboundChannel)
+        log.info(s"Initiating shadow processor for inbound $inboundChannel")
         initiateShadowProcessor()
       }
     }
@@ -290,7 +291,7 @@ trait InboundBootstrapComponent {
               try {
                 log.info("Trying to take")
                 val request = pendingRequests.take
-                log.info("Took: {}", request)
+                log.info(s"Took: $request")
                 if (request == ChannelClosedRequest) {
                   if (somethingBound) {
                     outboundChannel.write(InboundClosed)
@@ -300,7 +301,7 @@ trait InboundBootstrapComponent {
                   log.info("Task complete servicing outbound shadow requests")
                   done = true
                 } else {
-                  log.info("Writing shadow request {} to {}", request, outboundChannel)
+                  log.info(s"Writing shadow request $request to $outboundChannel")
                   somethingBound = true
                   outboundChannel.write(RequestBinding(request, shadowBinding))
                 }
@@ -309,7 +310,7 @@ trait InboundBootstrapComponent {
                   log.warn("shadow executor interrupted")
                   done = true
                 case e: Throwable =>
-                  log.error("Exception processing shadow: {}", Exceptions.stackTrace(e))
+                  log.error(s"Exception processing shadow: ", e)
               } finally {
                 log.info("Leaving long-running shadow pump task")
               }
@@ -331,7 +332,7 @@ trait InboundBootstrapComponent {
         val (closed, open) = pending.asScala.partition(_ == ChannelClosedRequest)
         open foreach {
           request =>
-            log.info("Sinking a gateway timeout for {}", request)
+            log.info(s"Sinking a gateway timeout for $request")
             request.dataSink.sinkRequest(Shadow, request.request)
             request.dataSink.sinkResponse(Shadow, HttpErrorResponse(HttpResponseStatus.GATEWAY_TIMEOUT))
         }
@@ -343,10 +344,10 @@ trait InboundBootstrapComponent {
       lazy val futureShadowAction: (ChannelFuture => Unit) = {
         case future: ChannelFuture =>
           if (future.isSuccess) {
-            log.info("Shadow connection success {}", inboundChannel)
+            log.info(s"Shadow connection success $inboundChannel")
             startShadowProcessor(future.getChannel)
           } else {
-            log.warn("Shadow connection failed {}", inboundChannel)
+            log.warn(s"Shadow connection failed $inboundChannel")
             // We can just borrow again; previous connection will be
             // automatically reaped when it is noticed it is not connected
             Thread.sleep(falloff)
@@ -363,10 +364,10 @@ trait InboundBootstrapComponent {
             }
             if (connectionStillOpen) {
               if (shadowMetadata != null) {
-                log.info("Returning {}", shadowMetadata)
+                log.info(s"Returning $shadowMetadata")
                 connectionPool.returnConnection(shadowMetadata)
               }
-              log.info("Borrowing another shadow with falloff = {}", falloff)
+              log.info(s"Borrowing another shadow with falloff = $falloff")
               shadowMetadata = connectionPool.borrowConnection(
                 shadowKey.copy(futureAction = futureShadowAction))
             }
@@ -380,14 +381,14 @@ trait InboundBootstrapComponent {
           try {
             shadowMetadata = connectionPool.borrowConnection(
               shadowKey.copy(futureAction = futureShadowAction))
-            log.info("Borrowed shadowMetadata {}", shadowMetadata)
+            log.info(s"Borrowed shadowMetadata $shadowMetadata")
           } catch {
             case e: NoSuchElementException =>
               log.info("oops, NoSuchElement")
               drainAndFlush
             case e: Throwable =>
-              log.info("oops, unknown exception: {}", e)
-              log.error("Unknown exception borrowing connection {}", Exceptions.stackTrace(e))
+              log.info(s"oops, unknown exception: $e")
+              log.error("Unknown exception borrowing connection", e)
           } finally {
             log.info("Done running task to borrow shadow connection")
           }
@@ -397,7 +398,7 @@ trait InboundBootstrapComponent {
     }
 
     override def channelClosed(ctx: ChannelHandlerContext, e: ChannelStateEvent) {
-      log.info("channelClosed {}", inboundChannel)
+      log.info(s"channelClosed $inboundChannel")
       if (enableShadowing) {
         pendingRequests.put(ChannelClosedRequest)
       }
@@ -409,18 +410,18 @@ trait InboundBootstrapComponent {
     }
 
     override def exceptionCaught(ctx: ChannelHandlerContext, e: ExceptionEvent) {
-      log.error("Exception caught in InboundHandler: {} {}", inboundChannel, e.getCause)
+      log.error(s"Exception caught in InboundHandler: $inboundChannel ${e.getCause}")
     }
 
     override def channelInterestChanged(ctx: ChannelHandlerContext,
                                         e: ChannelStateEvent) {
-      log.info("interestChanged: {} {}", inboundChannel, e)
+      log.info(s"interestChanged: $inboundChannel $e")
       referenceLock synchronized {
         if (inboundChannel.isWritable) {
-          log.info("Setting reference channel readable {}", inboundChannel)
+          log.info(s"Setting reference channel readable $inboundChannel")
           referenceChannel.setReadable(true)
         } else {
-          log.info("Setting reference channel not readable {}", inboundChannel)
+          log.info(s"Setting reference channel not readable $inboundChannel")
           referenceChannel.setReadable(false)
         }
       }
@@ -447,14 +448,14 @@ trait InboundBootstrapComponent {
         val httpRequest = rewriteReference(e.getMessage.asInstanceOf[HttpRequest])
         ctx.sendDownstream(HttpVersionMessage(httpRequest.getProtocolVersion))
         request = RequestContext(count, httpRequest, dataSinkFactory.dataSink(count))
-        log.info("messageReceived: {} {}", request.request.getUri, request.count)
+        log.info(s"messageReceived: ${request.request.getUri} ${request.count}")
 
         if (enableShadowing) {
           shadowRequest = rewriteShadowUrl(httpRequest) match {
             case None => None
             case Some(r) => Some(request.copy(request = r))
           }
-          log.info("shadowRequest from {} = {}", httpRequest, shadowRequest)
+          log.info(s"shadowRequest from $httpRequest = $shadowRequest")
         }
 
         if (HttpHeaders.is100ContinueExpected(httpRequest)) {
@@ -468,8 +469,8 @@ trait InboundBootstrapComponent {
       } else {
         // readingChunks
         val chunk = e.getMessage.asInstanceOf[HttpChunk]
-        if (log.isTraceEnabled) {
-          log.trace("Reading chunk {} {}", inboundChannel, chunk)
+        if (log.underlying.isTraceEnabled) {
+          log.trace(s"Reading chunk $inboundChannel $chunk")
         }
         request.content ::= chunk
         if (chunk.isLast) {
@@ -489,7 +490,7 @@ trait InboundBootstrapComponent {
             request.dataSink.sinkResponse(Shadow,
               new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.PRECONDITION_FAILED))
           case Some(sr) =>
-            log.info("Submitting pending shadow request {}", sr)
+            log.info(s"Submitting pending shadow request $sr")
             pendingRequests.put(sr)
         }
         shadowRequest = None
@@ -498,7 +499,7 @@ trait InboundBootstrapComponent {
 
       referenceLock synchronized {
         if (!referenceBinding.outboundChannel.isWritable) {
-          log.trace("setting inbound channel not readable {}", inboundChannel)
+          log.trace(s"setting inbound channel not readable $inboundChannel")
           inboundChannel.setReadable(false)
         }
       }

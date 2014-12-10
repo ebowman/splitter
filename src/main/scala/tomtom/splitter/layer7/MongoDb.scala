@@ -22,6 +22,7 @@ import java.util.concurrent.Executors
 import com.mongodb.casbah.commons.{MongoDBList, MongoDBObject}
 import com.mongodb.casbah.{MongoClient, MongoClientOptions}
 import com.mongodb.{DBObject, ServerAddress}
+import com.typesafe.scalalogging.Logger
 import org.jboss.netty.handler.codec.http.{CookieDecoder, HttpChunk, HttpHeaders, HttpMessage, HttpRequest, HttpResponse}
 import org.slf4j.LoggerFactory
 
@@ -40,7 +41,7 @@ trait MongoDbComponent {
 
   class MongoDb extends DataSinkFactory {
 
-    val log = LoggerFactory.getLogger(getClass)
+    val log = Logger(LoggerFactory.getLogger(getClass))
 
     val mongoConn = MongoClient(
       new ServerAddress(mongoConfig.host, mongoConfig.port),
@@ -61,7 +62,7 @@ trait MongoDbComponent {
       var shadowRequestChunks: List[HttpChunk] = Nil
       var shadowResponseChunks: List[HttpChunk] = Nil
       var closed = false
-      log.trace("Creating new sink {}", this)
+      log.trace(s"Creating new sink $this")
 
       private def finished: Boolean = {
         this synchronized {
@@ -102,7 +103,7 @@ trait MongoDbComponent {
       }
 
       def append(sourceType: SourceType, dataType: DataType, message: HttpMessage) {
-        log.trace("Appending to {}: {}", this, (sourceType, dataType, message))
+        log.trace(s"Appending to $this: ${(sourceType, dataType, message)}")
         require(!closed, "Oops, " + this + " is closed")
         this synchronized {
           (sourceType, dataType) match {
@@ -156,12 +157,12 @@ trait MongoDbComponent {
       }
 
       def close() {
-        log.trace("closing {}", this)
+        log.trace(s"closing $this")
         this synchronized {
           if (!closed && finished) {
             // ignore if we don't have all the data
             closed = true
-            log.trace("Sinking {}", this)
+            log.trace(s"Sinking $this")
             executor.submit(new Runnable {
               override def run() {
                 try {
@@ -180,15 +181,13 @@ trait MongoDbComponent {
                       }
                     })
                   try {
-                    log.trace("About to save: {} -> {}", MongoSink.this, toSave)
+                    log.trace(s"About to save: ${MongoSink.this} -> $toSave")
                     requests.save(toSave)
                   } catch {
-                    case e: Exception => log.error("Exception saving {}: {}", MongoSink.this,
-                      Exceptions.stackTrace(e))
+                    case e: Exception => log.error(s"Exception saving ${MongoSink.this}", e)
                   }
                 } catch {
-                  case e: Exception => log.error("Exception creating {}: {}", MongoSink.this,
-                    Exceptions.stackTrace(e))
+                  case e: Exception => log.error(s"Exception creating ${MongoSink.this}", e)
                 }
               }
             })

@@ -16,7 +16,8 @@
 
 package tomtom.splitter.layer7
 
-import org.slf4j.{Logger, LoggerFactory}
+import com.typesafe.scalalogging.Logger
+import org.slf4j.LoggerFactory
 import java.nio.channels.ClosedChannelException
 import org.jboss.netty.handler.codec.http.{HttpResponseStatus, HttpVersion, DefaultHttpResponse}
 import org.jboss.netty.channel._
@@ -48,13 +49,13 @@ abstract class AbstractCouplingHandler extends SimpleChannelUpstreamHandler {
         request = None
       case message: MessageEvent => message.getMessage match {
         case requestBinding: RequestBinding =>
-          log.info("received RequestBinding {} {}", sourceType,
-            (requestBinding.request.request.getUri, requestBinding.request.count))
+          log.info(s"received RequestBinding $sourceType ${
+            (requestBinding.request.request.getUri, requestBinding.request.count)}")
           request = Some(requestBinding.request)
           binding = Some(requestBinding.binding)
           failure match {
             case Some(ex) =>
-              log.info("Sinking error response {}", this)
+              log.info(s"Sinking error response $this")
               request.foreach(_.dataSink.sinkResponse(sourceType,
                 new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR)))
               request.foreach(rc => ctx.sendDownstream(RequestComplete(rc)))
@@ -70,7 +71,7 @@ abstract class AbstractCouplingHandler extends SimpleChannelUpstreamHandler {
         failure = Some(ex.getCause)
         request match {
           case Some(rc) =>
-            log.info("Sinking error response {}", this)
+            log.info(s"Sinking error response $this")
             rc.dataSink.sinkResponse(sourceType, HttpErrorResponse(HttpResponseStatus.INTERNAL_SERVER_ERROR))
           case None =>
         }
@@ -88,8 +89,8 @@ abstract class AbstractCouplingHandler extends SimpleChannelUpstreamHandler {
       // todo retry logic?
       case _ =>
     }
-    log.error("received failure {} {}",
-      (request.map(_.request.getUri).getOrElse("(No request in flight yet)"), failure.getOrElse(e.getCause)), e)
+    log.error(s"received failure ${
+      (request.map(_.request.getUri).getOrElse("(No request in flight yet)"), failure.getOrElse(e.getCause))} $e")
     request.map(RequestComplete).foreach(ctx.sendDownstream)
     binding foreach { bnd =>
       bnd.inboundChannel foreach { channel =>
@@ -102,14 +103,14 @@ abstract class AbstractCouplingHandler extends SimpleChannelUpstreamHandler {
 
 class ReferenceCouplingHandler extends AbstractCouplingHandler {
 
-  override val log = LoggerFactory.getLogger(classOf[ReferenceCouplingHandler])
+  override val log = Logger(LoggerFactory.getLogger(classOf[ReferenceCouplingHandler]))
 
   override val sourceType = SourceType.Reference
 
   override def channelInterestChanged(ctx: ChannelHandlerContext,
                                       e: ChannelStateEvent) {
-    if (log.isTraceEnabled) {
-      log.trace("interestChanged {} ({})", request.map(_.count), (e, ctx))
+    if (log.underlying.isTraceEnabled) {
+      log.trace(s"interestChanged ${request.map(_.count)} ${(e, ctx)}")
     }
 
     binding foreach { bnd =>
@@ -124,7 +125,7 @@ class ReferenceCouplingHandler extends AbstractCouplingHandler {
 
 class ShadowCouplingHandler extends AbstractCouplingHandler {
 
-  override val log = LoggerFactory.getLogger(classOf[ShadowCouplingHandler])
+  override val log = Logger(LoggerFactory.getLogger(classOf[ShadowCouplingHandler]))
 
   override val sourceType = SourceType.Shadow
 }

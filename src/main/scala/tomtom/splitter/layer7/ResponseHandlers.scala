@@ -16,7 +16,8 @@
 
 package tomtom.splitter.layer7
 
-import org.slf4j.{Logger, LoggerFactory}
+import com.typesafe.scalalogging.Logger
+import org.slf4j.LoggerFactory
 import org.jboss.netty.handler.codec.http.{HttpChunk, HttpResponse}
 import org.jboss.netty.channel._
 
@@ -39,7 +40,7 @@ trait AbstractResponseHandler extends SimpleChannelUpstreamHandler {
     e match {
       case message: MessageEvent => message.getMessage match {
         case RequestBinding(context, bnd) =>
-          log.info("received RequestBinding {} {}", sourceType, (context.request.getUri, context.count))
+          log.info(s"received RequestBinding $sourceType, ${(context.request.getUri, context.count)}")
           this.requestContext = context
           this.binding = bnd
         // swallow
@@ -53,33 +54,34 @@ trait AbstractResponseHandler extends SimpleChannelUpstreamHandler {
                                e: MessageEvent) {
     e.getMessage match {
       case response: HttpResponse =>
-        log.info("response message received (sinking) {} {}", (requestContext.request.getUri, requestContext.count, sourceType, e.getChannel), e)
+        log.info(s"response message received (sinking) ${
+          (requestContext.request.getUri, requestContext.count, sourceType, e.getChannel)}", e)
         requestContext.dataSink.sinkResponse(sourceType, response)
         if (!requestContext.request.isChunked) {
-          log.trace("Firing back RequestComplete {}", (requestContext.request.getUri, requestContext.count))
+          log.trace(s"Firing back RequestComplete ${(requestContext.request.getUri, requestContext.count)}")
           ctx.sendDownstream(RequestComplete(requestContext))
         }
       case chunk: HttpChunk =>
-        log.trace("chunk message received {} {}", (requestContext, sourceType, e.getChannel), e)
+        log.trace(s"chunk message received ${(requestContext, sourceType, e.getChannel)}: $e")
         requestContext.dataSink.sinkResponseChunk(sourceType, chunk)
         if (!chunk.isLast) {
-          log.trace("Firing back RequestComplete {}", (requestContext.request.getUri, requestContext.count))
+          log.trace(s"Firing back RequestComplete ${(requestContext.request.getUri, requestContext.count)}")
           ctx.sendDownstream(RequestComplete(requestContext))
         }
       case _ =>
-        log.warn("Unexpected message: {} -> {}", (requestContext, sourceType, e.getChannel), e)
+        log.warn(s"Unexpected message: ${(requestContext, sourceType, e.getChannel)} -> $e")
     }
     super.messageReceived(ctx, e)
   }
 
   override def exceptionCaught(ctx: ChannelHandlerContext, e: ExceptionEvent) {
-    log.error("received failure {} {}", (requestContext, binding), e.getCause)
+    log.error(s"received failure ${(requestContext, binding)}: ${e.getCause}")
   }
 }
 
 class ReferenceResponseHandler(implicit override val sourceType: SourceType.SourceType) extends AbstractResponseHandler {
 
-  override val log = LoggerFactory.getLogger(getClass)
+  override val log = Logger(LoggerFactory.getLogger(getClass))
 
   override def messageReceived(ctx: ChannelHandlerContext,
                                e: MessageEvent) {
@@ -104,5 +106,5 @@ class ReferenceResponseHandler(implicit override val sourceType: SourceType.Sour
 }
 
 class ShadowResponseHandler(implicit override val sourceType: SourceType.SourceType) extends AbstractResponseHandler {
-  override val log = LoggerFactory.getLogger(getClass)
+  override val log = Logger(LoggerFactory.getLogger(getClass))
 }
