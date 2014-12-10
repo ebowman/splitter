@@ -90,9 +90,12 @@ abstract class AbstractCouplingHandler extends SimpleChannelUpstreamHandler {
     }
     log.error("received failure {} {}",
       (request.map(_.request.getUri).getOrElse("(No request in flight yet)"), failure.getOrElse(e.getCause)), e)
-    request.foreach(rc => ctx.sendDownstream(RequestComplete(rc)))
-    binding.foreach(_.inboundChannel.map(_.write(HttpErrorResponse(HttpResponseStatus.INTERNAL_SERVER_ERROR)).
-      addListener(ChannelFutureListener.CLOSE)))
+    request.map(RequestComplete).foreach(ctx.sendDownstream)
+    binding foreach { bnd =>
+      bnd.inboundChannel foreach { channel =>
+        channel.write(HttpErrorResponse(HttpResponseStatus.INTERNAL_SERVER_ERROR)).addListener(ChannelFutureListener.CLOSE)
+      }
+    }
     super.exceptionCaught(ctx, e)
   }
 }
@@ -109,16 +112,12 @@ class ReferenceCouplingHandler extends AbstractCouplingHandler {
       log.trace("interestChanged {} ({})", request.map(_.count), (e, ctx))
     }
 
-    binding match {
-      case Some(bnd) =>
-        bnd.inboundChannel match {
-          case Some(inboundChannel) =>
-            bnd.trafficLock synchronized {
-              inboundChannel.setReadable(bnd.outboundChannel.isWritable)
-            }
-          case None =>
+    binding foreach { bnd =>
+      bnd.inboundChannel foreach { channel =>
+        bnd.trafficLock.synchronized {
+          channel.setReadable(bnd.outboundChannel.isWritable)
         }
-      case None =>
+      }
     }
   }
 }
