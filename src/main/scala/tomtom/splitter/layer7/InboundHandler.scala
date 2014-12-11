@@ -310,7 +310,7 @@ trait InboundBootstrapComponent {
                 case e: InterruptedException =>
                   log.warn("shadow executor interrupted")
                   done = true
-                case e: Throwable =>
+                case e: Exception =>
                   log.error(s"Exception processing shadow: ", e)
               } finally {
                 log.info("Leaving long-running shadow pump task")
@@ -387,7 +387,7 @@ trait InboundBootstrapComponent {
             case e: NoSuchElementException =>
               log.info("oops, NoSuchElement")
               drainAndFlush
-            case e: Throwable =>
+            case e: Exception =>
               log.info(s"oops, unknown exception: $e")
               log.error("Unknown exception borrowing connection", e)
           } finally {
