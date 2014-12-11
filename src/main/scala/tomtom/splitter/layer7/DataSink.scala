@@ -119,7 +119,7 @@ class ChainingLogSink(chained: Option[DataSink]) extends DataSink {
 
   def logIfDone() {
     if (referenceRequest != null && referenceResponse != null && shadowRequest != null && shadowResponse != null) {
-      log.warn(referenceRequest.getUri + "\t" + referenceRequest.getMethod + "\t" +
+      log.info(referenceRequest.getUri + "\t" + referenceRequest.getMethod + "\t" +
         referenceResponse.getStatus + "\t" + shadowResponse.getStatus + "\t")
     }
   }

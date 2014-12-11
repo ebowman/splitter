@@ -19,6 +19,7 @@ package tomtom.splitter.config
 import java.util.concurrent.atomic.AtomicReference
 
 import collection.immutable.Map
+import scala.util.Try
 import util.parsing.combinator.JavaTokenParsers
 import java.io._
 
@@ -57,7 +58,7 @@ trait Config {
     cfg.configMap(n).asInstanceOf[Boolean]
   }
 
-  def bool(name: String, default: Boolean): Boolean = boolOpt(name).getOrElse(default)
+  def bool(name: String, default: Boolean): Boolean = Try(bool(name)).getOrElse(default)
 
   def intOpt(name: String): Option[Int] = {
     val (n, cfg) = getConfig(name)
@@ -69,7 +70,7 @@ trait Config {
     cfg.configMap(n).asInstanceOf[Int]
   }
 
-  def int(name: String, default: Int): Int = intOpt(name).getOrElse(default)
+  def int(name: String, default: Int): Int = Try(int(name)).getOrElse(default)
 
   def stringOpt(name: String): Option[String] = {
     val (n, cfg) = getConfig(name)
@@ -81,13 +82,13 @@ trait Config {
     cfg.configMap(n).asInstanceOf[String]
   }
 
-  def string(name: String, default: String): String = stringOpt(name).getOrElse(default)
+  def string(name: String, default: String): String = Try(string(name)).getOrElse(default)
 
   def fileOpt(name: String) = stringOpt(name).map(new File(_))
 
   def file(name: String) = new File(string(name))
 
-  def file(name: String, default: File): File = fileOpt(name).getOrElse(default)
+  def file(name: String, default: File): File = Try(file(name)).getOrElse(default)
 }
 
 object Config {

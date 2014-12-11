@@ -65,16 +65,13 @@ object Logging {
       /**
        * Override the log level as needed
        */
-      config.stringOpt("level") match {
-        case Some("trace") => rootLogger.setLevel(Level.TRACE)
-        case Some("debug") => rootLogger.setLevel(Level.DEBUG)
-        case Some("info") => rootLogger.setLevel(Level.INFO)
-        case Some("warn") => rootLogger.setLevel(Level.WARN)
-        case Some("error") => rootLogger.setLevel(Level.ERROR)
-        case Some(unknown) => println("Unknown log level " + unknown +
-          " (should be trace, debug, info, warn, or error")
-        case None =>
-      }
+      config.stringOpt("level").collect {
+        case "trace" => Level.TRACE
+        case "debug" => Level.DEBUG
+        case "info" => Level.INFO
+        case "warn" => Level.WARN
+        case "error" => Level.ERROR
+      }.foreach (rootLogger.setLevel)
     }
   }
 }

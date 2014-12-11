@@ -119,4 +119,14 @@ class ConfigSpec extends FlatSpec with Matchers with ConfigParser {
   it should "fail predictably when parsing garbage" in {
     a[RuntimeException] should be thrownBy new ConfigParser {}.parse(new StringReader("blah"))
   }
+
+  it should "missing config should behave with configOpt" in {
+    Config.loadResource("/test.config")
+    Config.config.configOpt("no such config") should be(None)
+  }
+
+  it should "behave correctly with default values for config values in non-existing subconfigs" in {
+    Config.loadResource("/test.config")
+    Config.config.int("no such config.myInt", 7) should be(7)
+  }
 }
