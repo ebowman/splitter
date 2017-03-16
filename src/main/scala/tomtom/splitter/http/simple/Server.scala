@@ -28,7 +28,6 @@ import org.jboss.netty.handler.codec.http.cookie.{ServerCookieDecoder, ServerCoo
 import org.jboss.netty.channel.{ExceptionEvent, ChannelFutureListener, MessageEvent, ChannelHandlerContext, SimpleChannelUpstreamHandler, Channels, ChannelPipeline, ChannelPipelineFactory}
 import java.util.concurrent.atomic.AtomicInteger
 
-//noinspection TypeAnnotation
 object Server {
 
   val executor = Executors.newCachedThreadPool

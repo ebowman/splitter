@@ -33,7 +33,6 @@ import org.jboss.netty.handler.codec.http._
   * @author Eric Bowman
   * @since 2011-04-07 09:19
   */
-//noinspection TypeAnnotation
 
 class CommandableServer(name: String, port: Int)(implicit executor: ExecutorService) extends HttpServer(port)(executor) {
 

@@ -44,7 +44,6 @@ object MutexHelper {
   * @author Eric Bowman
   * @since 2011-04-07 09:19
   */
-//noinspection TypeAnnotation
 class BasicProxyTest extends WordSpec with Matchers with BeforeAndAfterEach {
 
   import MutexHelper._

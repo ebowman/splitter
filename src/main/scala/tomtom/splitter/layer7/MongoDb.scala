@@ -40,7 +40,6 @@ trait MongoDbComponent {
   import tomtom.splitter.layer7.DataType._
   import tomtom.splitter.layer7.SourceType._
 
-  //noinspection TypeAnnotation
   class MongoDb extends DataSinkFactory {
 
     val log = Logger(LoggerFactory.getLogger(getClass))
@@ -276,7 +275,6 @@ trait MongoDbComponent {
   * each of which details the outcome of a single inbound request and its
   * responses.
   */
-//noinspection TypeAnnotation
 
 object MongoInspect extends MongoDbComponent {
   val mongoConfig = MongoConfig("localhost", 27017, "splitter", enableShadowing = true, connsPerHost = 10)
