@@ -29,14 +29,26 @@ import tomtom.splitter.config.Config
 import java.io.File
 import tomtom.splitter.layer7.PortFactory._
 
+object MutexHelper {
+
+  implicit class MutexOptionWrapper(val optMutex: Option[Semaphore]) extends AnyVal {
+    def acquire(): Unit = optMutex.foreach(_.acquire())
+    def release(): Unit = optMutex.foreach(_.release())
+  }
+
+}
+
 /**
  * Document me.
  *
  * @author Eric Bowman
  * @since 2011-04-07 09:19
  */
+//noinspection TypeAnnotation
 @RunWith(classOf[JUnitRunner])
 class BasicProxyTest extends WordSpec with Matchers with BeforeAndAfterEach {
+
+  import MutexHelper._
 
   // bring up a reference server that can accept commands to either
   // respond normally, respond slowly, or return an error
@@ -49,13 +61,13 @@ class BasicProxyTest extends WordSpec with Matchers with BeforeAndAfterEach {
   val shadowServer = new CommandableServer("shadow", shadowPort)
   var proxyConfig: FixtureConfig = _
   @volatile var mutex = None: Option[Semaphore]
-  var _dataSunk: List[FixtureSink] = null
+  var _dataSunk: List[FixtureSink] = _
 
   def notifier(testSink: FixtureSink) {
     this synchronized {
       _dataSunk ::= testSink
     }
-    mutex.map(_.release())
+    mutex.release()
   }
 
   def dataSunk = this synchronized {
@@ -114,14 +126,14 @@ class BasicProxyTest extends WordSpec with Matchers with BeforeAndAfterEach {
     }
     "proxy a basic request" in {
       mutex = Some(new Semaphore(1))
-      mutex.map(_.acquire())
+      mutex.acquire()
       val client = HttpClient(port = proxyPort) <<
         ("/?reference=ok&shadow=ok&test=proxy+a+basic+request", {
           case (r, s) => assert(s === "reference ok")
         })
       client.close()
       client.assertOk()
-      mutex.map(_.acquire())
+      mutex.acquire()
       assert(dataSunk.size === 1)
       val testSink = dataSunk.head
       assert(HttpClient.cb2String(testSink.messages(Reference, Response).getContent) === "reference ok")
@@ -130,14 +142,14 @@ class BasicProxyTest extends WordSpec with Matchers with BeforeAndAfterEach {
 
     "be immune to a shadow error" in {
       mutex = Some(new Semaphore(1))
-      mutex.map(_.acquire())
+      mutex.acquire()
       val client = HttpClient(port = proxyPort) <<
         ("/?reference=ok&shadow=status+500&test=be+immune+to+a+shadow+error", {
           case (r, s) => assert(s === "reference ok")
         })
       client.close()
       client.assertOk()
-      mutex.map(_.acquire())
+      mutex.acquire()
       assert(dataSunk.size === 1)
       val testSink = dataSunk.head
       assert(HttpClient.cb2String(testSink.messages(Reference, Response).getContent) === "reference ok")
@@ -146,7 +158,7 @@ class BasicProxyTest extends WordSpec with Matchers with BeforeAndAfterEach {
 
     "be immune to a slow shadow" in {
       mutex = Some(new Semaphore(1))
-      mutex.map(_.acquire())
+      mutex.acquire()
       val start = System.currentTimeMillis
       val client = HttpClient(port = proxyPort) <<
         ("/?reference=ok&shadow=sleep+1000&test=be+immune+to+a+slow+shadow", {
@@ -155,7 +167,7 @@ class BasicProxyTest extends WordSpec with Matchers with BeforeAndAfterEach {
       client.close()
       client.assertOk()
       val stop = System.currentTimeMillis
-      mutex.map(_.acquire())
+      mutex.acquire()
       assert(dataSunk.size === 1)
       assert(stop - start < 500, "Should have been < 500, was " + (stop - start))
       val testSink = dataSunk.head
@@ -165,8 +177,8 @@ class BasicProxyTest extends WordSpec with Matchers with BeforeAndAfterEach {
 
     "be ok with a succession of http/1.1 requests on the same socket" in {
       mutex = Some(new Semaphore(2))
-      mutex.map(_.acquire())
-      mutex.map(_.acquire())
+      mutex.acquire()
+      mutex.acquire()
       val client = HttpClient(port = proxyPort) <<
         ("/?reference=ok&shadow=ok&test=success+http+1.1+1", {
           case (r, s) => assert(s === "reference ok")
@@ -177,8 +189,8 @@ class BasicProxyTest extends WordSpec with Matchers with BeforeAndAfterEach {
 
       client.close()
       client.assertOk()
-      mutex.map(_.acquire())
-      mutex.map(_.acquire())
+      mutex.acquire()
+      mutex.acquire()
       assert(dataSunk.size === 2)
       log.info("dataSunk = {}", dataSunk)
       var header = 2
@@ -193,8 +205,8 @@ class BasicProxyTest extends WordSpec with Matchers with BeforeAndAfterEach {
 
     "be ok with a succession of http/1.0 requests" in {
       mutex = Some(new Semaphore(2))
-      mutex.map(_.acquire())
-      mutex.map(_.acquire())
+      mutex.acquire()
+      mutex.acquire()
       val client = new HttpClient(port = proxyPort) {
         override def supplementRequest(httpRequest: HttpRequest): HttpRequest = {
           httpRequest.setProtocolVersion(HttpVersion.HTTP_1_0)
@@ -210,8 +222,8 @@ class BasicProxyTest extends WordSpec with Matchers with BeforeAndAfterEach {
 
       client.close()
       client.assertOk()
-      mutex.map(_.acquire())
-      mutex.map(_.acquire())
+      mutex.acquire()
+      mutex.acquire()
       assert(dataSunk.size === 2)
       var header = 2
       for (testSink <- dataSunk) {
@@ -228,14 +240,14 @@ class BasicProxyTest extends WordSpec with Matchers with BeforeAndAfterEach {
       proxyConfig = FixtureConfig(proxyPort, referencePort, ProxiedServer("localhost:1"), notifier)
       proxyConfig.start()
       mutex = Some(new Semaphore(1))
-      mutex.map(_.acquire())
+      mutex.acquire()
       val client = HttpClient(port = proxyPort) <<
         ("/?reference=ok&shadow=ok&test=shadow+refuses", {
           case (r, s) => assert(s === "reference ok")
         })
       client.close()
       client.assertOk()
-      mutex.map(_.acquire())
+      mutex.acquire()
       log.info("dataSunk = {}", dataSunk)
       assert(dataSunk.size === 1)
       val testSink = dataSunk.head
@@ -248,7 +260,7 @@ class BasicProxyTest extends WordSpec with Matchers with BeforeAndAfterEach {
       proxyConfig = FixtureConfig(proxyPort, referencePort, ProxiedServer("google.com:44"), notifier)
       proxyConfig.start()
       mutex = Some(new Semaphore(1))
-      mutex.map(_.acquire())
+      mutex.acquire()
       val start = System.currentTimeMillis
       val client = HttpClient(port = proxyPort) <<
         ("/?reference=ok&shadow=ok&test=shadow+firewalled", {
@@ -258,7 +270,7 @@ class BasicProxyTest extends WordSpec with Matchers with BeforeAndAfterEach {
       client.assertOk()
       val end = System.currentTimeMillis
       assert((end - start) < 100, "Should have been < 100, was " + (end - start))
-      mutex.map(_.acquire())
+      mutex.acquire()
       assert(dataSunk.size === 1)
       val testSink = dataSunk.head
       assert(HttpClient.cb2String(testSink.messages(Reference, Response).getContent) === "reference ok")
