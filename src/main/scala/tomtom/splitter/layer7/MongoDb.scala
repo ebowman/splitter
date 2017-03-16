@@ -23,7 +23,8 @@ import com.mongodb.casbah.commons.{MongoDBList, MongoDBObject}
 import com.mongodb.casbah.{MongoClient, MongoClientOptions}
 import com.mongodb.{DBObject, ServerAddress}
 import com.typesafe.scalalogging.Logger
-import org.jboss.netty.handler.codec.http.{CookieDecoder, HttpChunk, HttpHeaders, HttpMessage, HttpRequest, HttpResponse}
+import org.jboss.netty.handler.codec.http.{HttpChunk, HttpHeaders, HttpMessage, HttpRequest, HttpResponse}
+import org.jboss.netty.handler.codec.http.cookie.ServerCookieDecoder
 import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
@@ -39,6 +40,7 @@ trait MongoDbComponent {
   import tomtom.splitter.layer7.DataType._
   import tomtom.splitter.layer7.SourceType._
 
+  //noinspection TypeAnnotation
   class MongoDb extends DataSinkFactory {
 
     val log = Logger(LoggerFactory.getLogger(getClass))
@@ -127,7 +129,8 @@ trait MongoDbComponent {
                 require(shadowRequest == null)
                 shadowRequest = message.asInstanceOf[HttpRequest]
               }
-            case _ => sys.error("Unknown sourceType/dataType: " +(sourceType, dataType))
+            case _ =>
+              sys.error(s"Unexpected ($sourceType, $dataType) in append with message $message")
           }
           if (finished) {
             close()
@@ -153,6 +156,8 @@ trait MongoDbComponent {
             this synchronized {
               shadowRequestChunks ::= chunk
             }
+          case _ =>
+            sys.error(s"Unexpected ($sourceType, $dataType) in append with chunk $chunk")
         }
       }
 
@@ -224,7 +229,7 @@ trait MongoDbComponent {
           chunk: HttpChunk =>
             val content = chunk.getContent
             import content.{array, arrayOffset, readableBytes}
-            chunkList += array.drop(arrayOffset).take(readableBytes)
+            chunkList += array.slice(arrayOffset, arrayOffset + readableBytes)
         }
         chunkList.result()
       }
@@ -252,8 +257,8 @@ trait MongoDbComponent {
         val cookieObj = MongoDBList.newBuilder
         if (cookieHeader != null) {
           import scala.collection.JavaConverters._
-          for (cookie <- new CookieDecoder().decode(cookieHeader).asScala) {
-            cookieObj += (cookie.getName -> cookie.getValue)
+          for (cookie <- ServerCookieDecoder.LAX.decode(cookieHeader).asScala) {
+            cookieObj += (cookie.name -> cookie.value)
           }
         }
         cookieObj.result()
@@ -266,11 +271,12 @@ trait MongoDbComponent {
 }
 
 /**
- * The database consists of a number of "request" instances
- * (by virtue of the being in the table named "requests")
- * each of which details the outcome of a single inbound request and its
- * responses.
- */
+  * The database consists of a number of "request" instances
+  * (by virtue of the being in the table named "requests")
+  * each of which details the outcome of a single inbound request and its
+  * responses.
+  */
+//noinspection TypeAnnotation
 
 object MongoInspect extends MongoDbComponent {
   val mongoConfig = MongoConfig("localhost", 27017, "splitter", enableShadowing = true, connsPerHost = 10)

@@ -85,47 +85,41 @@ trait ConnectionPoolFactoryComponent {
 
   val poolConfig: PoolConfig
 
-  class ConnectionPoolFactory extends KeyedPoolableObjectFactory {
+  class ConnectionPoolFactory extends KeyedPoolableObjectFactory[ConnectionKey, CachedChannel] {
 
     val log = Logger(LoggerFactory.getLogger(getClass))
 
-    def fromKey(key: AnyRef) = key.asInstanceOf[ConnectionKey]
-
-    def fromObj(obj: AnyRef) = obj.asInstanceOf[CachedChannel]
-
-    override def makeObject(key: AnyRef): AnyRef = {
+    override def makeObject(key: ConnectionKey): CachedChannel = {
       log.info(s"Creating $key")
-      val typedKey = fromKey(key.asInstanceOf[ConnectionKey])
       val clientBootstrap = new ClientBootstrap(outboundChannelFactory)
-      clientBootstrap.setPipelineFactory(typedKey.pipelineFactory())
+      clientBootstrap.setPipelineFactory(key.pipelineFactory())
       clientBootstrap.setOption("connectTimeoutMillis", poolConfig.connectTimeoutMillis.toString)
       clientBootstrap.setOption("receiveTimeoutMillis", poolConfig.receiveTimeoutMillis.toString)
       clientBootstrap.setOption("keepAlive", poolConfig.keepAlive.toString)
-      val future = clientBootstrap.connect(typedKey.server.address)
+      val future = clientBootstrap.connect(key.server.address)
       import RichFuture._
       future listen {
-        typedKey.futureAction
+        key.futureAction
       }
       CachedChannel(future.getChannel)
     }
 
-    override def destroyObject(key: AnyRef, obj: AnyRef) {
+    override def destroyObject(key: ConnectionKey, obj: CachedChannel) {
       log.debug(s"Destroying $key")
-      Channels.close(fromObj(obj).channel)
+      Channels.close(obj.channel)
     }
 
-    override def validateObject(key: AnyRef, obj: AnyRef): Boolean = {
+    override def validateObject(key: ConnectionKey, obj: CachedChannel): Boolean = {
       log.trace(s"Validating ($key, $obj)")
-      val typedObj = fromObj(obj)
-      val result = typedObj.created || (typedObj.channel.isConnected && typedObj.channel.isWritable)
+      val result = obj.created || (obj.channel.isConnected && obj.channel.isWritable)
       log.info(s"Validating $obj result is $result")
       result
     }
 
-    override def activateObject(key: AnyRef, obj: AnyRef) {
+    override def activateObject(key: ConnectionKey, obj: CachedChannel) {
     }
 
-    override def passivateObject(key: AnyRef, obj: AnyRef) {
+    override def passivateObject(key: ConnectionKey, obj: CachedChannel) {
     }
   }
 
@@ -160,7 +154,7 @@ trait ConnectionPoolComponent {
       true /* test while idle */)
 
     override def borrowConnection(key: ConnectionKey): KeyChannelPair = {
-      val objBundle = pool.borrowObject(key).asInstanceOf[CachedChannel]
+      val objBundle = pool.borrowObject(key)
       if (!objBundle.created) {
         val future = Channels.future(objBundle.channel)
         future.setSuccess()

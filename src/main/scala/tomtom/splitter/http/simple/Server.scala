@@ -23,15 +23,17 @@ import java.net.InetSocketAddress
 import org.jboss.netty.util.CharsetUtil
 import collection.JavaConverters._
 import org.jboss.netty.buffer.ChannelBuffers
-import org.jboss.netty.handler.codec.http.{HttpServerCodec, CookieEncoder, CookieDecoder, HttpChunkTrailer, HttpChunk, QueryStringDecoder, HttpResponseStatus, DefaultHttpResponse, HttpVersion, HttpHeaders, HttpRequest}
+import org.jboss.netty.handler.codec.http.{HttpServerCodec, HttpChunkTrailer, HttpChunk, QueryStringDecoder, HttpResponseStatus, DefaultHttpResponse, HttpVersion, HttpHeaders, HttpRequest}
+import org.jboss.netty.handler.codec.http.cookie.{ServerCookieDecoder, ServerCookieEncoder}
 import org.jboss.netty.channel.{ExceptionEvent, ChannelFutureListener, MessageEvent, ChannelHandlerContext, SimpleChannelUpstreamHandler, Channels, ChannelPipeline, ChannelPipelineFactory}
 import java.util.concurrent.atomic.AtomicInteger
 
+//noinspection TypeAnnotation
 object Server {
 
   val executor = Executors.newCachedThreadPool
   val idGenerator = new AtomicInteger
-  val rnd = util.Random
+  val rnd = scala.util.Random
 
   def delayTime: Int = {
     // we take a Poisson distribution with lamba=1,
@@ -150,11 +152,10 @@ object Server {
               }
               val cookieString = request.headers.get(HttpHeaders.Names.COOKIE)
               if (cookieString != null) {
-                val cookies = new CookieDecoder().decode(cookieString).asScala
+                val cookies = ServerCookieDecoder.LAX.decode(cookieString).asScala
                 if (cookies.nonEmpty) {
-                  val encoder = new CookieEncoder(/* server= */ true)
-                  cookies.foreach(encoder.addCookie)
-                  response.headers.set(HttpHeaders.Names.SET_COOKIE, encoder.encode)
+                  val encoder = ServerCookieEncoder.LAX
+                  response.headers.set(HttpHeaders.Names.SET_COOKIE, cookies.map(encoder.encode).asJava)
                 }
               }
 
