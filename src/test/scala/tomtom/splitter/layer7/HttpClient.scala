@@ -16,22 +16,23 @@
 
 package tomtom.splitter.layer7
 
-import org.jboss.netty.bootstrap.ClientBootstrap
-import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory
-import java.util.concurrent.ExecutorService
 import java.net.InetSocketAddress
 import java.nio.channels.ClosedChannelException
-import org.jboss.netty.handler.codec.http.{HttpHeaders, HttpChunk, HttpResponse, HttpRequest, HttpClientCodec, DefaultHttpRequest, HttpVersion, HttpMethod}
+import java.util.concurrent.ExecutorService
+
+import org.jboss.netty.bootstrap.ClientBootstrap
 import org.jboss.netty.buffer.ChannelBuffer
-import org.jboss.netty.channel.{ChannelStateEvent, ExceptionEvent, Channel, ChannelHandlerContext, MessageEvent, SimpleChannelUpstreamHandler, Channels, ChannelPipelineFactory}
+import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory
+import org.jboss.netty.channel._
+import org.jboss.netty.handler.codec.http._
 import org.slf4j.LoggerFactory
 
 /**
- * Document me.
- *
- * @author Eric Bowman
- * @since 2011-04-06 14:19
- */
+  * Document me.
+  *
+  * @author Eric Bowman
+  * @since 2011-04-06 14:19
+  */
 
 object HttpClient {
   def cb2String(content: ChannelBuffer): String = {

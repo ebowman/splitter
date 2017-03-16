@@ -21,15 +21,12 @@ import java.util.concurrent.{ExecutorService, Executors, Semaphore}
 
 import com.typesafe.scalalogging.Logger
 import org.jboss.netty.handler.codec.http.{HttpRequest, HttpResponseStatus}
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 import org.slf4j.LoggerFactory
 import tomtom.splitter.config.Config
 import tomtom.splitter.layer7.DataType._
 import tomtom.splitter.layer7.SourceType._
 
-@RunWith(classOf[JUnitRunner])
 class LoadTest extends WordSpec with Matchers with BeforeAndAfterEach {
   // bring up a reference server that can accept commands to either
   // respond normally, respond slowly, or return an error
@@ -135,7 +132,7 @@ class LoadTest extends WordSpec with Matchers with BeforeAndAfterEach {
             }) {
               val path = "/request=" + request
               // log.warn("Submitting {}", path)
-              client <<(path, {
+              client << (path, {
                 case (r, _) =>
                   assert(r.getStatus === HttpResponseStatus.OK)
               })

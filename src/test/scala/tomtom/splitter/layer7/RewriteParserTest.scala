@@ -16,18 +16,15 @@ package tomtom.splitter.layer7
  * limitations under the License.
  */
 
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
 
 /**
- * Verifies basic behavior of RequestMapper.
- *
- * @author Eric Bowman
- * @since 2011-06-27 13:05:40
- */
+  * Verifies basic behavior of RequestMapper.
+  *
+  * @author Eric Bowman
+  * @since 2011-06-27 13:05:40
+  */
 
-@RunWith(classOf[JUnitRunner])
 class RewriteParserTest extends WordSpec with Matchers with RewriteParser {
 
   "The RewriteParser" should {

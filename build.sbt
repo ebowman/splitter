@@ -20,8 +20,7 @@ libraryDependencies ++= Seq(
     "ch.qos.logback" % "logback-core" % "1.2.1" % "compile->default",
     "io.netty" % "netty" % "3.10.6.Final" % "compile->default",
     "org.mongodb" %% "casbah" % "3.1.1",
-    "org.scalatest" %% "scalatest" % "3.0.1" % "test",
-    "junit" % "junit" % "4.12" % "test->default"
+    "org.scalatest" %% "scalatest" % "3.0.1" % "test"
 )
 
 parallelExecution in Test := false

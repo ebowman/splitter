@@ -17,13 +17,14 @@
 package tomtom.splitter.layer7
 
 import java.net.InetSocketAddress
-import org.jboss.netty.bootstrap.ServerBootstrap
-import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory
-import org.jboss.netty.util.CharsetUtil
-import org.jboss.netty.buffer.ChannelBuffers
 import java.util.concurrent.ExecutorService
-import org.jboss.netty.channel.{ChannelFuture, Channel, MessageEvent, ExceptionEvent, ChannelHandlerContext, SimpleChannelUpstreamHandler, Channels, ChannelPipeline, ChannelPipelineFactory, ChannelFutureListener}
-import org.jboss.netty.handler.codec.http.{HttpChunk, HttpVersion, DefaultHttpResponse, HttpHeaders, HttpServerCodec, HttpResponseStatus, HttpRequest}
+
+import org.jboss.netty.bootstrap.ServerBootstrap
+import org.jboss.netty.buffer.ChannelBuffers
+import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory
+import org.jboss.netty.channel._
+import org.jboss.netty.handler.codec.http._
+import org.jboss.netty.util.CharsetUtil
 
 case class HttpServer(port: Int)(implicit executor: ExecutorService) {
 

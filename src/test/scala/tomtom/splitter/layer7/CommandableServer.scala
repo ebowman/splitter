@@ -17,21 +17,23 @@
 package tomtom.splitter.layer7
 
 import java.util.concurrent.ExecutorService
-import org.jboss.netty.handler.codec.http.{HttpHeaders, QueryStringDecoder, HttpResponse, HttpResponseStatus, HttpRequest}
+
+import org.jboss.netty.handler.codec.http._
 
 /**
- * Document me.
- *
- * @author Eric Bowman
- * @since 2011-04-12 19:31
- */
+  * Document me.
+  *
+  * @author Eric Bowman
+  * @since 2011-04-12 19:31
+  */
 
 /**
- * Document me.
- *
- * @author Eric Bowman
- * @since 2011-04-07 09:19
- */
+  * Document me.
+  *
+  * @author Eric Bowman
+  * @since 2011-04-07 09:19
+  */
+//noinspection TypeAnnotation
 
 class CommandableServer(name: String, port: Int)(implicit executor: ExecutorService) extends HttpServer(port)(executor) {
 

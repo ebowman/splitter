@@ -16,36 +16,35 @@
 
 package tomtom.splitter.layer7
 
-import org.scalatest.junit.JUnitRunner
-import org.junit.runner.RunWith
-import org.scalatest.{Matchers, BeforeAndAfterEach, WordSpec}
-import java.util.concurrent.{Semaphore, Executors, ExecutorService}
-import FixtureConfig._
-import org.jboss.netty.handler.codec.http.{HttpResponse, HttpVersion, HttpRequest, HttpResponseStatus}
-import org.slf4j.LoggerFactory
-
-import SourceType._, DataType._
-import tomtom.splitter.config.Config
 import java.io.File
+import java.util.concurrent.{ExecutorService, Executors, Semaphore}
+
+import org.jboss.netty.handler.codec.http.{HttpRequest, HttpResponse, HttpResponseStatus, HttpVersion}
+import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
+import org.slf4j.LoggerFactory
+import tomtom.splitter.config.Config
+import tomtom.splitter.layer7.DataType._
+import tomtom.splitter.layer7.FixtureConfig._
 import tomtom.splitter.layer7.PortFactory._
+import tomtom.splitter.layer7.SourceType._
 
 object MutexHelper {
 
   implicit class MutexOptionWrapper(val optMutex: Option[Semaphore]) extends AnyVal {
     def acquire(): Unit = optMutex.foreach(_.acquire())
+
     def release(): Unit = optMutex.foreach(_.release())
   }
 
 }
 
 /**
- * Document me.
- *
- * @author Eric Bowman
- * @since 2011-04-07 09:19
- */
+  * Document me.
+  *
+  * @author Eric Bowman
+  * @since 2011-04-07 09:19
+  */
 //noinspection TypeAnnotation
-@RunWith(classOf[JUnitRunner])
 class BasicProxyTest extends WordSpec with Matchers with BeforeAndAfterEach {
 
   import MutexHelper._

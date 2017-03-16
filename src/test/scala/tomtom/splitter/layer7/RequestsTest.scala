@@ -19,18 +19,15 @@ package tomtom.splitter.layer7
 import java.io.File
 
 import org.jboss.netty.handler.codec.http.{DefaultHttpRequest, HttpMethod, HttpVersion}
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
 
 /**
- * Verifies basic behavior of RequestMapper.
- *
- * @author Eric Bowman
- * @since 2011-04-12 19:15:22
- */
+  * Verifies basic behavior of RequestMapper.
+  *
+  * @author Eric Bowman
+  * @since 2011-04-12 19:15:22
+  */
 
-@RunWith(classOf[JUnitRunner])
 class RequestsTest extends WordSpec with Matchers with RequestMapperModule {
 
   override val shadowHostname = Some("my.hostname")

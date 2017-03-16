@@ -16,23 +16,25 @@
 
 package tomtom.splitter.layer7
 
-import java.util.concurrent.Executors
-import org.jboss.netty.channel.socket.nio.{NioClientSocketChannelFactory, NioServerSocketChannelFactory}
-import java.util.UUID
-import org.slf4j.LoggerFactory
-import org.jboss.netty.handler.codec.http.{HttpResponse, HttpRequest, HttpChunk, HttpMessage}
 import java.io.File
+import java.util.UUID
+import java.util.concurrent.Executors
+
+import org.jboss.netty.channel.socket.nio.{NioClientSocketChannelFactory, NioServerSocketChannelFactory}
+import org.jboss.netty.handler.codec.http.{HttpChunk, HttpMessage, HttpRequest, HttpResponse}
+import org.slf4j.LoggerFactory
 
 /**
- * Document me.
- *
- * @author Eric Bowman
- * @since 2011-04-06 21:01
- */
+  * Document me.
+  *
+  * @author Eric Bowman
+  * @since 2011-04-06 21:01
+  */
 
 object FixtureSink {
 
-  import SourceType._, DataType._
+  import DataType._
+  import SourceType._
 
   val mustExist: Set[(SourceType, DataType)] =
     Set((Reference, Request), (Reference, Response), (Shadow, Response), (Shadow, Request))
@@ -46,7 +48,8 @@ class FixtureSink(notifier: (FixtureSink => Unit)) extends DataSink {
   @volatile var messages = Map[(SourceType.SourceType, DataType.DataType), HttpMessage]()
   @volatile var chunks = Map[(SourceType.SourceType, DataType.DataType), List[HttpChunk]]()
 
-  import SourceType._, DataType._
+  import DataType._
+  import SourceType._
 
   def append(sourceType: SourceType, dataType: DataType, chunk: HttpChunk) {
     this synchronized {
@@ -103,7 +106,9 @@ class FixtureSink(notifier: (FixtureSink => Unit)) extends DataSink {
 }
 
 object FixtureConfig {
+
   import scala.language.implicitConversions
+
   implicit def intToProxiedServer(port: Int): ProxiedServer = ProxiedServer("localhost:" + port)
 }
 

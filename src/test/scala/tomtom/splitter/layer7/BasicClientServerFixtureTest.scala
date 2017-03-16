@@ -20,20 +20,17 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 
 import org.jboss.netty.buffer.DynamicChannelBuffer
-import org.jboss.netty.handler.codec.http.{DefaultHttpChunk, DefaultHttpChunkTrailer, DefaultHttpResponse, HttpChunk, HttpHeaders, HttpRequest, HttpResponseStatus, HttpVersion}
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
+import org.jboss.netty.handler.codec.http._
 import org.scalatest.{Matchers, WordSpec}
 import tomtom.splitter.layer7.PortFactory._
 
 /**
- * Test to verify and demonstrate our mini http server & client fixtures.
- *
- * @author Eric Bowman
- * @since 2011-04-06 13:17
- */
+  * Test to verify and demonstrate our mini http server & client fixtures.
+  *
+  * @author Eric Bowman
+  * @since 2011-04-06 13:17
+  */
 
-@RunWith(classOf[JUnitRunner])
 class BasicClientServerFixtureTest extends WordSpec with Matchers {
 
   val serverPort = findPort()
@@ -72,6 +69,7 @@ class BasicClientServerFixtureTest extends WordSpec with Matchers {
           response.headers.set(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
           response.headers.set(HttpHeaders.Names.TRANSFER_ENCODING, "chunked")
           val resultString = buffer.toString()
+
           def takeChunk(chunks: List[HttpChunk], rest: String): List[HttpChunk] = {
             if (rest.length == 0) {
               new DefaultHttpChunkTrailer :: chunks
@@ -84,6 +82,7 @@ class BasicClientServerFixtureTest extends WordSpec with Matchers {
               takeChunk(new DefaultHttpChunk(bytes) :: chunks, rest.drop(chars))
             }
           }
+
           response :: takeChunk(Nil, resultString).reverse
         }
       }.start {

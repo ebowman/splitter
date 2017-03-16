@@ -20,8 +20,6 @@ import java.io.File
 import java.util.concurrent.{ExecutorService, Executors, Semaphore}
 
 import org.jboss.netty.handler.codec.http.{HttpHeaders, HttpRequest, HttpResponse, HttpResponseStatus}
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
 import org.scalatest.{BeforeAndAfterEach, Matchers, WordSpec}
 import org.slf4j.LoggerFactory
 import tomtom.splitter.config.Config
@@ -32,9 +30,8 @@ import tomtom.splitter.layer7.SourceType._
 // implicit int-to-ProxiedServer
 
 /**
- * Confirms that some well-known BA URLs are rewritten properly for Ofbiz
- */
-@RunWith(classOf[JUnitRunner])
+  * Confirms that some well-known BA URLs are rewritten properly for Ofbiz
+  */
 class OfbizShadowTest extends WordSpec with Matchers with BeforeAndAfterEach {
 
   // bring up a reference server that can accept commands to either

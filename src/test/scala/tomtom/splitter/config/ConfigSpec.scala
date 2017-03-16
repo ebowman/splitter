@@ -16,19 +16,18 @@
 
 package tomtom.splitter.config
 
-import org.scalatest.{FlatSpec, Matchers}
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
 import java.io.{File, StringReader}
 
-@RunWith(classOf[JUnitRunner])
+import org.scalatest.{FlatSpec, Matchers}
+
 class ConfigSpec extends FlatSpec with Matchers with ConfigParser {
   type ? = this.type
 
   behavior of "the config parser"
 
   it should "behave as expected" in {
-    val testConfig = """
+    val testConfig =
+      """
       myInt = 7
       myBool = false
       myString = "now is the time"
