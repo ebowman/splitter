@@ -240,7 +240,7 @@ trait InboundBootstrapComponent {
       val counter = new AtomicInteger(2)
       referenceMetadata = connectionPool.borrowConnection(
         referenceKey.copy(futureAction = {
-          case future: ChannelFuture =>
+          future: ChannelFuture =>
             val setReadable = counter.decrementAndGet() == 0
             log.info(s"On callback, setReadable = $setReadable")
             if (future.isSuccess) {
@@ -307,7 +307,7 @@ trait InboundBootstrapComponent {
                   outboundChannel.write(RequestBinding(request, shadowBinding))
                 }
               } catch {
-                case e: InterruptedException =>
+                case _: InterruptedException =>
                   log.warn("shadow executor interrupted")
                   done = true
                 case e: Exception =>
@@ -337,13 +337,13 @@ trait InboundBootstrapComponent {
             request.dataSink.sinkRequest(Shadow, request.request)
             request.dataSink.sinkResponse(Shadow, HttpErrorResponse(HttpResponseStatus.GATEWAY_TIMEOUT))
         }
-        closed.size == 0
+        closed.isEmpty
       }
 
       @volatile var connectionStart = System.currentTimeMillis
       @volatile var falloff = 50
       lazy val futureShadowAction: (ChannelFuture => Unit) = {
-        case future: ChannelFuture =>
+        future: ChannelFuture =>
           if (future.isSuccess) {
             log.info(s"Shadow connection success $inboundChannel")
             startShadowProcessor(future.getChannel)
@@ -384,7 +384,7 @@ trait InboundBootstrapComponent {
               shadowKey.copy(futureAction = futureShadowAction))
             log.info(s"Borrowed shadowMetadata $shadowMetadata")
           } catch {
-            case e: NoSuchElementException =>
+            case _: NoSuchElementException =>
               log.info("oops, NoSuchElement")
               drainAndFlush
             case e: Exception =>

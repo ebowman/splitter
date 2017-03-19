@@ -84,7 +84,7 @@ class ConfigSpec extends FlatSpec with Matchers with ConfigParser {
     subConfig.string("mySubString") should be("for all good \"men\" to come to the aid of their country")
     subConfig.string("missing string", "foo") should be("foo")
     subConfig.bool("mySubBool") should be(true)
-    subConfig.bool("missing bool", false) should be(false)
+    subConfig.bool("missing bool", default = false) should be(false)
 
     val subsub = subConfig.config("mySubSubConfig")
     subsub.string("foo") should be("bar")

@@ -16,24 +16,22 @@
 
 package tomtom.splitter.layer7
 
-import org.jboss.netty.channel.{ChannelFutureListener, ChannelFuture}
+import org.jboss.netty.channel.ChannelFuture
 
 /**
- * Document me.
- *
- * @author Eric Bowman
- * @since 2011-03-29 11:54
- */
+  * Add a listen method to a netty ChannelFuture. Not sure this is needed anymore with scala 2.12.
+  *
+  * @author Eric Bowman
+  * @since 2011-03-29 11:54
+  */
 
 object RichFuture {
+
   implicit class RichFuture(val future: ChannelFuture) extends AnyVal {
     def listen(f: (ChannelFuture => Unit)) {
-      future.addListener(new ChannelFutureListener {
-        def operationComplete(future: ChannelFuture) {
-          f(future)
-        }
-      })
+      future.addListener(future => f(future))
     }
   }
+
 }
 
