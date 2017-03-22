@@ -16,10 +16,9 @@
 
 package tomtom.splitter.http.simple
 
-import collection.JavaConverters._
 import java.net.InetSocketAddress
-import java.util.concurrent.atomic.{AtomicInteger, AtomicReference}
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.{AtomicInteger, AtomicReference}
 
 import org.jboss.netty.bootstrap.ServerBootstrap
 import org.jboss.netty.buffer.ChannelBuffers
@@ -29,12 +28,16 @@ import org.jboss.netty.handler.codec.http._
 import org.jboss.netty.handler.codec.http.cookie._
 import org.jboss.netty.util.CharsetUtil
 
+import scala.collection.JavaConverters._
+
 abstract class Server {
 
   val executor = Executors.newCachedThreadPool
   val idGenerator = new AtomicInteger
   val rnd = scala.util.Random
-  private val CRLF = "\r\n"
+
+  private[this] val cRLF = "\r\n"
+  private[this] val xRequestId = "X-Request-Id"
 
   def delayTime(): Int = {
     // we take a Poisson distribution with lamba=1,
@@ -57,118 +60,119 @@ abstract class Server {
     math.round(z * scale).toInt
   }
 
+  class UpstreamHandler extends SimpleChannelUpstreamHandler {
+    val requestRef = new AtomicReference[HttpRequest]
+    val buffer = new StringBuilder
+
+
+    override def exceptionCaught(ctx: ChannelHandlerContext, e: ExceptionEvent) {
+      e.getCause.printStackTrace()
+      e.getChannel.close()
+    }
+
+    type Handler = (ChannelHandlerContext, MessageEvent) => Unit
+
+    val currHandler = new AtomicReference[Handler](defaultHandler)
+
+    private[this] def defaultHandler(ctx: ChannelHandlerContext, e: MessageEvent): Unit = {
+      this.requestRef.set(e.getMessage.asInstanceOf[HttpRequest])
+      val request = requestRef.get
+      if (HttpHeaders.is100ContinueExpected(request)) {
+        e.getChannel.write(new DefaultHttpResponse(
+          HttpVersion.HTTP_1_1, HttpResponseStatus.CONTINUE))
+      }
+
+      val requestId: Option[Int] = Option(request.headers.get(xRequestId)).map(_.toInt)
+
+      println("RequestId = " + requestId)
+      Thread.sleep(delayTime())
+
+      buffer.setLength(0)
+      buffer.append(s"Welcome$cRLF")
+      buffer.append(s"=======$cRLF")
+      buffer.append(s"VERSION: ${request.getProtocolVersion}$cRLF")
+      buffer.append(s"HOSTNAME: ${HttpHeaders.getHost(request, "unknown")}$cRLF")
+      buffer.append(s"REQUEST_URI: ${request.getUri}$cRLF$cRLF")
+      request.headers.asScala.foreach {
+        h => buffer.append(s"HEADER: ${h.getKey}=${h.getValue}$cRLF")
+      }
+      buffer.append(cRLF)
+      val queryDecoder = new QueryStringDecoder(request.getUri)
+      val params = queryDecoder.getParameters
+      if (!params.isEmpty) {
+        for (headers <- params.entrySet.asScala;
+             name = headers.getKey;
+             value <- headers.getValue.asScala) {
+          buffer.append(s"PARAM: $name=$value$cRLF")
+        }
+        buffer.append(cRLF)
+      }
+
+      if (request.isChunked) {
+        currHandler.set(chunkHandler)
+      } else {
+        val content = request.getContent
+        if (content.readable) {
+          buffer.append(s"CONTENT: ${content.toString(CharsetUtil.UTF_8)}$cRLF")
+        }
+        writeResponse(e, requestId)
+      }
+    }
+
+    private[this] def chunkHandler(ctx: ChannelHandlerContext, e: MessageEvent): Unit = {
+      val chunk = e.getMessage.asInstanceOf[HttpChunk]
+      if (chunk.isLast) {
+        val trailer = chunk.asInstanceOf[HttpChunkTrailer]
+        if (!trailer.trailingHeaders().isEmpty) {
+          for (name <- trailer.trailingHeaders.names.asScala;
+               value <- trailer.trailingHeaders.getAll(name).asScala) {
+            buffer.append(s"TRAILING HEADER: $name=$value$cRLF")
+          }
+          buffer.append(cRLF)
+        }
+        writeResponse(e, None)
+      } else {
+        buffer.append(s"CHUNK: ${chunk.getContent.toString(CharsetUtil.UTF_8)}$cRLF")
+      }
+    }
+
+    override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) = currHandler.get()(ctx, e)
+
+    def writeResponse(e: MessageEvent, requestId: Option[Int]) {
+      val keepAlive = false
+      // HttpHeaders.isKeepAlive(this.request)
+      val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)
+      response.setContent(ChannelBuffers.copiedBuffer(buffer.toString(), CharsetUtil.UTF_8))
+      response.headers.set(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
+      response.headers.set("X-Response-Id", idGenerator.incrementAndGet.toString)
+      // response.headers.set("Connection", "close")
+      if (keepAlive) {
+        response.headers.set(HttpHeaders.Names.CONTENT_LENGTH, response.getContent.readableBytes)
+      }
+      val request = requestRef.get()
+      Option(request.headers.get(HttpHeaders.Names.COOKIE)).foreach { cookieString =>
+        val cookies = ServerCookieDecoder.LAX.decode(cookieString).asScala
+        if (cookies.nonEmpty) {
+          val encoder = ServerCookieEncoder.LAX
+          response.headers.set(HttpHeaders.Names.SET_COOKIE, cookies.map(encoder.encode).asJava)
+        }
+      }
+      requestId.map(response.headers.set(xRequestId, _))
+
+      val future = e.getChannel.write(response)
+      if (!keepAlive) {
+        future.addListener(ChannelFutureListener.CLOSE)
+      }
+    }
+  }
+
   def bootstrap(port: Int) = {
     val b = new ServerBootstrap(new NioServerSocketChannelFactory(executor, executor))
     b.setPipelineFactory(new ChannelPipelineFactory {
-      def getPipeline: ChannelPipeline = {
+      override def getPipeline: ChannelPipeline = {
         val pipeline = Channels.pipeline
         pipeline.addLast("httpCodec", new HttpServerCodec)
-        pipeline.addLast("processor", new SimpleChannelUpstreamHandler {
-          val requestRef = new AtomicReference[HttpRequest]
-          val buffer = new StringBuilder
-
-
-          override def exceptionCaught(ctx: ChannelHandlerContext, e: ExceptionEvent) {
-            e.getCause.printStackTrace()
-            e.getChannel.close()
-          }
-
-          type Handler = (ChannelHandlerContext, MessageEvent) => Unit
-
-          val currHandler = new AtomicReference[Handler](defaultHandler)
-
-          private def defaultHandler(ctx: ChannelHandlerContext, e: MessageEvent): Unit = {
-            this.requestRef.set(e.getMessage.asInstanceOf[HttpRequest])
-            val request = requestRef.get
-            if (HttpHeaders.is100ContinueExpected(request)) {
-              e.getChannel.write(new DefaultHttpResponse(
-                HttpVersion.HTTP_1_1, HttpResponseStatus.CONTINUE))
-            }
-
-            val requestId: Option[Int] = {
-              Option(request.headers.get("X-Request-Id")).map(_.toInt)
-            }
-
-            println("RequestId = " + requestId)
-            Thread.sleep(delayTime())
-
-            buffer.setLength(0)
-            buffer.append(s"Welcome$CRLF")
-            buffer.append(s"=======$CRLF")
-            buffer.append(s"VERSION: ${request.getProtocolVersion}$CRLF")
-            buffer.append(s"HOSTNAME: ${HttpHeaders.getHost(request, "unknown")}$CRLF")
-            buffer.append(s"REQUEST_URI: ${request.getUri}$CRLF$CRLF")
-            request.headers.asScala.foreach {
-              h => buffer.append(s"HEADER: ${h.getKey}=${h.getValue}$CRLF")
-            }
-            buffer.append(CRLF)
-            val queryDecoder = new QueryStringDecoder(request.getUri)
-            val params = queryDecoder.getParameters
-            if (!params.isEmpty) {
-              for (headers <- params.entrySet.asScala;
-                   name = headers.getKey;
-                   value <- headers.getValue.asScala) {
-                buffer.append(s"PARAM: $name=$value$CRLF")
-              }
-              buffer.append(CRLF)
-            }
-
-            if (request.isChunked) {
-              currHandler.set(chunkHandler)
-            } else {
-              val content = request.getContent
-              if (content.readable) {
-                buffer.append(s"CONTENT: ${content.toString(CharsetUtil.UTF_8)}$CRLF")
-              }
-              writeResponse(e, requestId)
-            }
-          }
-
-          private def chunkHandler(ctx: ChannelHandlerContext, e: MessageEvent): Unit = {
-            val chunk = e.getMessage.asInstanceOf[HttpChunk]
-            if (chunk.isLast) {
-              val trailer = chunk.asInstanceOf[HttpChunkTrailer]
-              if (!trailer.trailingHeaders().isEmpty) {
-                for (name <- trailer.trailingHeaders.names.asScala;
-                     value <- trailer.trailingHeaders.getAll(name).asScala) {
-                  buffer.append(s"TRAILING HEADER: $name=$value$CRLF")
-                }
-                buffer.append(CRLF)
-              }
-              writeResponse(e, None)
-            } else {
-              buffer.append(s"CHUNK: ${chunk.getContent.toString(CharsetUtil.UTF_8)}$CRLF")
-            }
-          }
-
-          override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) = currHandler.get()(ctx, e)
-
-          def writeResponse(e: MessageEvent, requestId: Option[Int]) {
-            val keepAlive = false // HttpHeaders.isKeepAlive(this.request)
-            val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)
-            response.setContent(ChannelBuffers.copiedBuffer(buffer.toString(), CharsetUtil.UTF_8))
-            response.headers.set(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
-            response.headers.set("X-Response-Id", idGenerator.incrementAndGet.toString)
-            // response.headers.set("Connection", "close")
-            if (keepAlive) {
-              response.headers.set(HttpHeaders.Names.CONTENT_LENGTH, response.getContent.readableBytes)
-            }
-            val request = requestRef.get()
-            Option(request.headers.get(HttpHeaders.Names.COOKIE)).foreach { cookieString =>
-              val cookies = ServerCookieDecoder.LAX.decode(cookieString).asScala
-              if (cookies.nonEmpty) {
-                val encoder = ServerCookieEncoder.LAX
-                response.headers.set(HttpHeaders.Names.SET_COOKIE, cookies.map(encoder.encode).asJava)
-              }
-            }
-            requestId.map(response.headers.set("X-Request-Id", _))
-
-            val future = e.getChannel.write(response)
-            if (!keepAlive) {
-              future.addListener(ChannelFutureListener.CLOSE)
-            }
-          }
-        })
+        pipeline.addLast("processor", new UpstreamHandler)
         pipeline
       }
     })
