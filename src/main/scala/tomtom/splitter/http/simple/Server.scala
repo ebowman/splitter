@@ -17,8 +17,8 @@
 package tomtom.splitter.http.simple
 
 import java.net.InetSocketAddress
-import java.util.concurrent.Executors
 import java.util.concurrent.atomic.{AtomicInteger, AtomicReference}
+import java.util.concurrent.Executors
 
 import org.jboss.netty.bootstrap.ServerBootstrap
 import org.jboss.netty.buffer.ChannelBuffers
@@ -61,7 +61,8 @@ abstract class Server {
   }
 
   class UpstreamHandler extends SimpleChannelUpstreamHandler {
-    val requestRef = new AtomicReference[HttpRequest]
+    @volatile var request: HttpRequest = _
+    @volatile var currHandler: Handler = defaultHandler
     val buffer = new StringBuilder
 
 
@@ -72,11 +73,9 @@ abstract class Server {
 
     type Handler = (ChannelHandlerContext, MessageEvent) => Unit
 
-    val currHandler = new AtomicReference[Handler](defaultHandler)
 
     private[this] def defaultHandler(ctx: ChannelHandlerContext, e: MessageEvent): Unit = {
-      this.requestRef.set(e.getMessage.asInstanceOf[HttpRequest])
-      val request = requestRef.get
+      request = e.getMessage.asInstanceOf[HttpRequest]
       if (HttpHeaders.is100ContinueExpected(request)) {
         e.getChannel.write(new DefaultHttpResponse(
           HttpVersion.HTTP_1_1, HttpResponseStatus.CONTINUE))
@@ -109,7 +108,7 @@ abstract class Server {
       }
 
       if (request.isChunked) {
-        currHandler.set(chunkHandler)
+        currHandler = chunkHandler
       } else {
         val content = request.getContent
         if (content.readable) {
@@ -136,7 +135,7 @@ abstract class Server {
       }
     }
 
-    override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) = currHandler.get()(ctx, e)
+    override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) = currHandler(ctx, e)
 
     def writeResponse(e: MessageEvent, requestId: Option[Int]) {
       val keepAlive = false
@@ -149,7 +148,6 @@ abstract class Server {
       if (keepAlive) {
         response.headers.set(HttpHeaders.Names.CONTENT_LENGTH, response.getContent.readableBytes)
       }
-      val request = requestRef.get()
       Option(request.headers.get(HttpHeaders.Names.COOKIE)).foreach { cookieString =>
         val cookies = ServerCookieDecoder.LAX.decode(cookieString).asScala
         if (cookies.nonEmpty) {
