@@ -2,6 +2,7 @@ Splitter
 ========
 
 (c) 2011 TomTom International BV
+(c) 2017 Eric Bowman
 
 Introduction
 ------------
@@ -109,4 +110,5 @@ Eric Bowman
 ebowman@boboco.ie
 
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/67fa05df97494116a1f63b17924d6121)](https://www.codacy.com/app/ebowman/splitter?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ebowman/splitter&amp;utm_campaign=Badge_Grade)
 
